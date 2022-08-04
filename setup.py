@@ -19,7 +19,7 @@ import setuptools
 
 def main():
     setuptools.setup(name='asfpy',
-        version='0.37',
+        version='0.38',
         description='ASF Common Python Methods',
         long_description="This is a common set of functions used by the ASF Infrastructure team such as libraries for sending email, ldap management and generic process daemonization.",
         long_description_content_type = "text/plain",
@@ -33,6 +33,7 @@ def main():
             'ezt',
             'stdiomask',
             'requests',
+            'aiohttp',
         ],
         extras_requires= {
             'ldap': ['python-ldap'],
