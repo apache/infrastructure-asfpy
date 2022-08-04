@@ -111,7 +111,6 @@ async def _process_connection(session, pubsub_url):
             # ignores it.
             try:
                 raw = await conn.content.readuntil(b'\n')
-                raise ValueError("Chunk too big")
             except ValueError as e:
                 LOGGER.error(f'Saw "{e}"; re-raising as ClientPayloadError to close/reconnect')
                 raise aiohttp.ClientPayloadError(f're-raised from ValueError in readuntil()')
