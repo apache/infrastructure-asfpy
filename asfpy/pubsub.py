@@ -35,6 +35,7 @@ import time
 import sys
 import asyncio
 import logging
+import warnings
 
 import aiohttp
 
@@ -164,6 +165,7 @@ class Listener:
     """ Generic listener for pubsubs. Grabs each payload and runs process() on them. """
 
     def __init__(self, url):
+        warnings.warn('use listen_forever() instead', DeprecationWarning)
         self.url = url
         self.connection = None
 
@@ -180,6 +182,7 @@ def listen_forever(func, url, auth=None, raw=False, since=-1, debug=False):
 
     ### more docco about FUNC calling, AUTH, RAW, SINCE, DEBUG
     """
+    warnings.warn('use listen() instead', DeprecationWarning)
 
     while True:
         if debug:
