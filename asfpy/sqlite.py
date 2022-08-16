@@ -20,14 +20,16 @@
 import sqlite3
 import typing
 
+DEFAULT_ISOLATION_LEVEL = None  # When None, enables auto-commit mode in sqlite
+# https://docs.python.org/3/library/sqlite3.html#sqlite3.Connection.isolation_level
 
 class AsfpyDBError(Exception):
     pass
 
 
 class DB:
-    def __init__(self, fp: str):
-        self.connector = sqlite3.connect(fp)
+    def __init__(self, fp: str, isolation_level: typing.Optional[str] = DEFAULT_ISOLATION_LEVEL):
+        self.connector = sqlite3.connect(fp, isolation_level=isolation_level)
         self.connector.row_factory = sqlite3.Row
         self.cursor = self.connector.cursor()
         # Need sqlite 3.25.x or higher for upserts
