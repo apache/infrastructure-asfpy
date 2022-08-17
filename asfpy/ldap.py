@@ -29,7 +29,7 @@ import random
 import string
 
 LDAP_SANDBOX = "ldaps://ldap-sandbox.apache.org:636"
-LDAP_MASTER = "ldaps://ldap-master.apache.org:636"
+LDAP_MASTER = "ldaps://ldap-us.apache.org:636"
 LDAP_SUFFIX = 'dc=apache,dc=org'
 LDAP_PEOPLE_BASE = 'ou=people,dc=apache,dc=org'
 LDAP_GROUPS_BASE = 'ou=groups,dc=apache,dc=org'
