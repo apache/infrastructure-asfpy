@@ -7,10 +7,13 @@ This Python library contains features commonly used at the Apache Software Found
 
 ## Building asfpy package
 
-Make sure you have the `build` and `twine` packages installed first ( `pip3 install build twine`)
+Preparation
+
+* `apt install python3.10-venv`
+* `pip3 install build twine`
 
 Bump the version number in `setup.py` and run:
-`python3 setup.py sdist bdist_wheel`
+`python3 -m build`
 
 
 ## Publishing a new asfpy package
