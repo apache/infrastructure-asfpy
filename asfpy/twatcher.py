@@ -22,7 +22,7 @@
 #   tw = twatcher.TemplateWatcher()
 #   T_1 = tw.load_template(PATH_1)
 #   T_2 = tw.load_template(PATH_2)
-#   T_3 = tw.load_template(PATH_3)
+#   T_3 = tw.load_template(PATH_3, base_format=ezt.FORMAT_HTML)
 #   loop.create_task(tw.watch_forever())
 #
 # If PATH_* is modified, then T_* will be updated (in place) with
