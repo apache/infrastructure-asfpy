@@ -17,6 +17,7 @@
 
 import setuptools
 
+
 def main():
     setuptools.setup(name='asfpy',
         version='0.39',
@@ -34,6 +35,7 @@ def main():
             'stdiomask',
             'requests',
             'aiohttp',
+            'asyncinotify',
         ],
         extras_requires= {
             'ldap': ['python-ldap'],
