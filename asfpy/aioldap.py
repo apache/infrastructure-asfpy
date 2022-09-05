@@ -95,6 +95,7 @@ class ASF_LDAPClient:
 
         # Hack around GnuTLS bug with async.
         # See: https://github.com/noirello/bonsai/issues/25
+        # and: https://github.com/noirello/bonsai/issues/69
         #
         # In an executor thread, we'll perform the synchronous connection,
         # so that the event loop will not be blocked.
