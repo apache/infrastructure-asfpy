@@ -74,20 +74,26 @@ class ASF_LDAPConnection:
         self.conn.close()
         self.conn = None  # ensure self is unusable
 
-    async def search(self, base, attrs, loop=None):
+    async def use_loop(self, loop, method, *args, **kw):
+        "Within LOOP, run METHOD with *ARGS and **KW."
         if loop is None:
             loop = asyncio.get_running_loop()
 
-        def run_search():
+        def call_method():
             # This synchronous function is now running within a thread
-            # of the Executor. Use some async to run the LDAP search.
-            return self.loop.run_until_complete(
-                self.conn.search(base,
-                                 bonsai.LDAPSearchScope.SUBTREE,
-                                 attrlist=attrs))
+            # of the Executor. Use some async to run the LDAP connection's
+            # method within our loop.
+            return self.loop.run_until_complete(method(*args, **kw))
 
         # Wait within the caller's loop for the result.
-        return await loop.run_in_executor(self.executor, run_search)
+        return await loop.run_in_executor(self.executor, call_method)
+
+    async def search(self, base, attrs, loop=None):
+        return await self.use_loop(loop,
+                                   self.conn.search,
+                                   base,
+                                   bonsai.LDAPSearchScope.SUBTREE,
+                                   attrlist=attrs)
 
     ### TBD ASF-specific custom methods? or use app-specific subclasses?
 
