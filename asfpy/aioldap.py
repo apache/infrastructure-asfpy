@@ -95,6 +95,9 @@ class ASF_LDAPConnection:
                                    bonsai.LDAPSearchScope.SUBTREE,
                                    attrlist=attrs)
 
+    async def whoami(self, loop=None):
+        return await self.use_loop(loop, self.conn.whoami)
+
     ### TBD ASF-specific custom methods? or use app-specific subclasses?
 
 
@@ -158,6 +161,10 @@ def test_conns(client):
     def ts():
         return f'[{loop.time() - t0 :.2f}]'
 
+    async def print_me():
+        async with client.connect() as conn:
+            print('ME:', await conn.whoami())
+
     async def heartbeat():
         while True:
             print(f'{ts()} heartbeat')
@@ -171,12 +178,13 @@ def test_conns(client):
             async with client.connect() as conn:
                 for _ in range(5):
                     s = random.choice(SERVICES)
-                    rv = await conn.search(SERVICE_BASE % (s,), ['owner',])
+                    rv = await conn.search(SERVICE_BASE % (s,), ['owner', 'member',])
                     print(f'{ts()} CONN[{name}]: RV=', rv)
                     await asyncio.sleep(random.randint(1, 3))
                 # between reconnections
                 await asyncio.sleep(random.randint(0, 5))
 
+    loop.create_task(print_me())
     loop.create_task(heartbeat())
     loop.create_task(conn_usage('A'))
     loop.create_task(conn_usage('B'))
