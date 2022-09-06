@@ -33,17 +33,42 @@ LOGGER = logging.getLogger(__name__)
 
 
 class ASF_LDAPConnection:
-    def __init__(self, executor, loop, conn):
-        # Shared Executor across 1 or more threads.
+    def __init__(self, client, executor):
+        # NOTE: must be instantiated within one of the EXECUTOR threads.
+
+        # Shared Executor holding one or more threads.
         self.executor = executor
 
         # bonsai.LDAPConnection ties itself to a loop. Thus, whatever
         # loop is used to create the connection must also be used to
-        # perform its operations. Remember our loop.
-        self.loop = loop
+        # perform its operations. We will construct that loop here,
+        # and use it for all bonsai actions. It does not have any
+        # thread affinity, until it is running. Thus, we can use this
+        # loop within any thread of the Executor.
+        self.loop = asyncio.new_event_loop()
 
-        # The underlying LDAP connection, tied to this thread/loop.
-        self.conn = conn
+        # Hack around GnuTLS bug with async.
+        # See: https://github.com/noirello/bonsai/issues/25
+        # and: https://github.com/noirello/bonsai/issues/69
+        #
+        # In THIS executor thread, we'll perform the synchronous
+        # connection, so that the main thread's event loop will
+        # not be blocked.
+        async def do_connect():
+            ### for testing: pretend this connection blocks
+            #import time; time.sleep(5)
+
+            # Tell bonsai to connect synchronously.
+            bonsai.set_connect_async(False)
+            try:
+                # Ties to self.loop (the running loop now).
+                return await client.connect(is_async=True)
+            finally:
+                # Make sure this always gets reset.
+                bonsai.set_connect_async(True)
+
+        # The underlying LDAP connection, tied to our loop.
+        self.conn = self.loop.run_until_complete(do_connect())
 
     def close(self):
         self.conn.close()
@@ -76,48 +101,16 @@ class ASF_LDAPClient:
         self.client.set_credentials("SIMPLE", binddn, bindpw)
         self.client.set_cert_policy("allow")  # TODO: Load our cert(?)
 
-        ### thread-local storage wasn't working. Use a nuke.
-        self.loops = { }
-
-        def new_loop():
-            t = threading.current_thread()
-            print('NEW-THREAD:', t)
-
-            # Construct an event loop for each thread in the Executor.
-            self.loops[t] = asyncio.new_event_loop()
-
         self.executor = concurrent.futures.ThreadPoolExecutor(
-            thread_name_prefix='aioldap', initializer=new_loop)
+            thread_name_prefix='aioldap')
 
     def connect(self, loop=None):
         if loop is None:
             loop = asyncio.get_running_loop()
 
-        # Hack around GnuTLS bug with async.
-        # See: https://github.com/noirello/bonsai/issues/25
-        # and: https://github.com/noirello/bonsai/issues/69
-        #
-        # In an executor thread, we'll perform the synchronous connection,
-        # so that the event loop will not be blocked.
-        #
-        # TLOOP was been created when the thread started, and holds
-        # the event loop for all operations on this thread.
+        # Run (blocking) in an executor thread.
         def blocking_connect():
-            tloop = self.loops[threading.current_thread()]
-            async def do_connect():
-                ### for testing: pretend this connection blocks
-                #import time; time.sleep(8)
-
-                # Tell bonsai to connect synchronously.
-                bonsai.set_connect_async(False)
-                try:
-                    return await self.client.connect(is_async=True)
-                finally:
-                    # Make sure this always gets reset.
-                    bonsai.set_connect_async(True)
-
-            conn = tloop.run_until_complete(do_connect())
-            return self.CONNECTION_CLASS(self.executor, tloop, conn)
+            return self.CONNECTION_CLASS(self.client, self.executor)
 
         future = loop.run_in_executor(self.executor, blocking_connect)
         #print('CONN-FUTURE:', future)
@@ -175,6 +168,8 @@ def test_conns(client):
                     rv = await conn.search(SERVICE_BASE % (s,), ['owner',])
                     print(f'{ts()} CONN[{name}]: RV=', rv)
                     await asyncio.sleep(random.randint(1, 3))
+                # between reconnections
+                await asyncio.sleep(random.randint(0, 5))
 
     loop.create_task(heartbeat())
     loop.create_task(conn_usage('A'))
