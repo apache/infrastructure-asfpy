@@ -75,7 +75,7 @@ class ASF_LDAPConnection:
         self.conn = None  # ensure self is unusable
 
     async def use_loop(self, loop, method, *args, **kw):
-        "Within LOOP, run METHOD with *ARGS and **KW."
+        "Running in LOOP, run/wait for METHOD with *ARGS and **KW."
         if loop is None:
             loop = asyncio.get_running_loop()
 
