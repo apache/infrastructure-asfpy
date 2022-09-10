@@ -37,8 +37,8 @@ def uniaddr(addr):
 def mail(
         host='mail-relay.apache.org:587',
         sender="Apache Infrastructure <users@infra.apache.org>",
-        recipient=None,
-        recipients=None,
+        recipient=None,  # str
+        recipients=None,  # str, or iterable
         subject='No subject',
         message=None,
         messageid=None,
@@ -56,6 +56,9 @@ def mail(
     # We want this as a list
     if isinstance(recipients, str):
         recipients = [recipients]
+    else:
+        # Do not modify the caller's object; or turn iterable into a list.
+        recipients = list(recipients)
 
     # py 2 vs 3 conversion
     if isinstance(sender, bytes):
