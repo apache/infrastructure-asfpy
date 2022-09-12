@@ -29,6 +29,7 @@ import threading
 
 import bonsai
 from bonsai import errors  # Import bonsai LDAP exceptions as an alias
+from bonsai import LDAPSearchScope  # LDAP search scopes
 
 LOGGER = logging.getLogger(__name__)
 
@@ -89,11 +90,11 @@ class ASF_LDAPConnection:
         # Wait within the caller's loop for the result.
         return await loop.run_in_executor(self.executor, call_method)
 
-    async def search(self, base, attrs, loop=None):
+    async def search(self, base, attrs, scope=LDAPSearchScope.SUBTREE, loop=None):
         return await self.use_loop(loop,
                                    self.conn.search,
                                    base,
-                                   bonsai.LDAPSearchScope.SUBTREE,
+                                   scope,
                                    attrlist=attrs)
 
     async def whoami(self, loop=None):
