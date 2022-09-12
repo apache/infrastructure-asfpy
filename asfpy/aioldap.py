@@ -28,6 +28,7 @@ import concurrent.futures
 import threading
 
 import bonsai
+from bonsai import errors  # Import bonsai LDAP exceptions as an alias
 
 LOGGER = logging.getLogger(__name__)
 
