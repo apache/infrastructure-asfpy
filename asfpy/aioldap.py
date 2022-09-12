@@ -28,8 +28,14 @@ import concurrent.futures
 import threading
 
 import bonsai
-from bonsai import errors  # Import bonsai LDAP exceptions as an alias
-from bonsai import LDAPSearchScope  # LDAP search scopes
+
+# Map the various bonsai exceptions into our namespace.
+from bonsai import errors
+
+# Re-map the LDAPSearchScope constants to our namespace.
+# These can now be used as (eg.) asfpy.aioldap.SCOPE.SUBTREE
+from bonsai import LDAPSearchScope as SCOPE
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -90,7 +96,7 @@ class ASF_LDAPConnection:
         # Wait within the caller's loop for the result.
         return await loop.run_in_executor(self.executor, call_method)
 
-    async def search(self, base, attrs, scope=LDAPSearchScope.SUBTREE, loop=None):
+    async def search(self, base, attrs, scope=SCOPE.SUBTREE, loop=None):
         return await self.use_loop(loop,
                                    self.conn.search,
                                    base,
