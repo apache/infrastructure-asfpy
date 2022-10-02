@@ -23,6 +23,13 @@ as well as defaulting where bits are missing.
 It also contains hipchat and stride integrations
 """
 
+#
+# Find users of this module:
+#  https://github.com/search?q=org%3Aapache+asfpy+messaging&type=code
+#
+# note: there may be some in svn:infra/trunk
+#
+
 import email.utils
 import email.header
 import smtplib
