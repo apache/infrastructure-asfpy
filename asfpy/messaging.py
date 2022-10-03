@@ -33,6 +33,14 @@ It also contains hipchat and stride integrations
 import email.utils
 import email.header
 import smtplib
+import warnings
+
+# Message submission uses port 587.
+#   https://www.rfc-editor.org/rfc/rfc6409
+SMTP_PORT = 587
+
+# Apache/Infra code defaults to this MSA for sending email.
+DEFAULT_MSA = 'mail-relay.apache.org'
 
 
 def uniaddr(addr):
@@ -41,16 +49,56 @@ def uniaddr(addr):
     return email.utils.formataddr((email.header.Header(bits[0], 'utf-8').encode(), bits[1]))
 
 
+def thread_msgid(key):
+    "Return a reproducible Message-ID value."
+    return'<asfpy-%s@apache.org>' % (key,)
+
+
 def mail(
-        host='mail-relay.apache.org:587',
+        ### need py2 compat. FUTURE:
+        # *,  # Parameters must be passed as arg=value, not positionally
+        host=DEFAULT_MSA,
+        ### maybe accept a port? for now: always 587
+
+        # These are required:
         sender="Apache Infrastructure <users@infra.apache.org>",
         recipient=None,  # str
         recipients=None,  # str, or iterable
-        subject='No subject',
+        subject=None,
         message=None,
+
+        thread_start=False,
+        thread_key=None,
+        # Deprecated:  (use thread_*)
         messageid=None,
-        headers=None
+        headers={ },
 ):
+    # Deprecating these parameters. Use THREAD_* instead.
+    if messageid or headers:
+        warnings.warn('Use THREAD_* instead of MESSAGEID and/or HEADERS.',
+                      DeprecationWarning)
+
+    # We have expectations. Enforce them.
+    assert message, 'Message body is required.'
+    assert (not messageid and not headers) \
+        or (not thread_start and not thread_key), \
+        'MESSAGEID and HEADERS or THREAD_*, but not both'
+    assert (not thread_start) or thread_key, \
+        'THREAD_KEY must be provided when starting a thread'
+    assert sender and (recipient or recipients) and subject and message, \
+        'All required arguments must be provided.'
+
+    # Handle threading of email messages.
+    if thread_start:
+        # Original post. Construct a very specific Message-ID which can
+        # be referenced in follow-up emails.
+        messageid = thread_msgid(thread_key)
+    elif thread_key:
+        # This message is a response to the original post, identified by
+        # a specific Message-ID that we constructed.
+        # Note: avoid modifying the passed HEADERS.
+        headers = headers.copy()['In-Reply-To'] = thread_msgid(thread_key)
+
     # Optional metadata first
     if not messageid:
         messageid = email.utils.make_msgid("asfpy")
@@ -64,7 +112,8 @@ def mail(
     if isinstance(recipients, str):
         recipients = [recipients]
     else:
-        # Do not modify the caller's object; or turn iterable into a list.
+        # Do not modify the caller's list, by copying it;
+        # or: turn an iterable into a list, so we can munge it.
         recipients = list(recipients)
 
     # py 2 vs 3 conversion
@@ -89,9 +138,6 @@ def mail(
             extra += u"%s: %s\n" % (key, val)
     extra += u"\n"
 
-    if not message:
-        raise Exception("No message body provided!")
-
     # Construct the email
     msg = u"""From: %s
 To: %s	
@@ -105,7 +151,7 @@ Content-Transfer-Encoding: 8bit
 """ % (sender_encoded, recipient_encoded, subject_encoded, messageid, date, extra, message)
     msg = msg.encode('utf-8', errors='replace')
     # Try to dispatch message, do a raw fail if stuff happens.
-    smtp_object = smtplib.SMTP(host)
+    smtp_object = smtplib.SMTP(host, SMTP_PORT)
     smtp_object.starttls()
     # Note that we're using the raw sender here...
     smtp_object.sendmail(sender, recipients, msg)
