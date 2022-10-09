@@ -69,6 +69,9 @@ def mail(
 
         thread_start=False,
         thread_key=None,
+
+        auth=None,  # (user, pass)
+
         # Deprecated:  (use thread_*)
         messageid=None,
         headers={ },
@@ -153,5 +156,7 @@ Content-Transfer-Encoding: 8bit
     # Try to dispatch message, do a raw fail if stuff happens.
     smtp_object = smtplib.SMTP(host, SMTP_PORT)
     smtp_object.starttls()
+    if auth:
+        smtp_object.login(*auth)  # user, pwd
     # Note that we're using the raw sender here...
     smtp_object.sendmail(sender, recipients, msg)
