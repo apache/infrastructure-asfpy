@@ -44,7 +44,7 @@ def ldapsearch_cli(
         else:
             key, value = line.split(":", maxsplit=1)
             if value.startswith(":"):  # Base64
-                value = base64.standard_b64decode(value[2:])
+                value = base64.standard_b64decode(value[2:]).decode("utf-8")
             else:
                 value = value.strip()
             if key not in bunch:
