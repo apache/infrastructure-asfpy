@@ -35,11 +35,12 @@ def ldapsearch_cli(
     elif isinstance(ldap_attrs, str):
         cliargs.append(ldap_attrs)
     
-    # Run asfldapsearch tool, and yield each bunch of data as a they appear.
+    # Run asfldapsearch tool, and put all results into a list
+    results = []
     bunch = {}
     for line in subprocess.run(cliargs, stdout=subprocess.PIPE).stdout.decode("us-ascii").splitlines(keepends=False):
         if not line:  # The end of a bunch always ends with a blank line.
-            yield bunch
+            results.append(bunch)
             bunch = {}
         else:
             key, value = line.split(":", maxsplit=1)
@@ -50,3 +51,4 @@ def ldapsearch_cli(
             if key not in bunch:
                 bunch[key] = list()
             bunch[key].append(value)
+    return results  # Return the list of results
