@@ -27,6 +27,7 @@ def ldapsearch_cli(
         ldap_base,
         "-s",                      # Limit scope to...
         ldap_scope,
+        "-o", "ldif-wrap=no",      # Don't wrap long lines
         ldap_query,                # This is our query
     ]
     # Check if attrs is a list or a single string, adjust cliargs accordingly...
