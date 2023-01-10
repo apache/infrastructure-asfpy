@@ -137,7 +137,10 @@ def mail(
     extra = u""
     if headers:
         for key, val in headers.items():
-            val = email.header.Header(val, 'utf-8').encode()
+            try:
+                str(val).encode("us-ascii")
+            except UnicodeEncodeError:  # String has non-ascii elements, convert
+                val = email.header.Header(val, 'utf-8').encode()
             extra += u"%s: %s\n" % (key, val)
     extra += u"\n"
 
