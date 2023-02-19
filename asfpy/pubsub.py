@@ -164,7 +164,7 @@ class Listener:
     """ Generic listener for pubsubs. Grabs each payload and runs process() on them. """
 
     def __init__(self, url):
-        warnings.warn('use listen_forever() instead', DeprecationWarning)
+        warnings.warn('use listen() instead', DeprecationWarning)
         self.url = url
         self.connection = None
 
