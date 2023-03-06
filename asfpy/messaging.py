@@ -163,3 +163,4 @@ Content-Transfer-Encoding: 8bit
         smtp_object.login(*auth)  # user, pwd
     # Note that we're using the raw sender here...
     smtp_object.sendmail(sender, recipients, msg)
+    return messageid # allow callers to do message threading
