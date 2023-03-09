@@ -17,6 +17,9 @@
 
 """ ASF LDAP Account Manager """
 
+if not __debug__:
+  raise RuntimeError("This code requires Assertions to be enabled")
+
 import sys
 assert sys.version_info >= (3, 2)
 
