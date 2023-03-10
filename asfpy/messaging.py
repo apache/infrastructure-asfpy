@@ -100,7 +100,8 @@ def mail(
         # This message is a response to the original post, identified by
         # a specific Message-ID that we constructed.
         # Note: avoid modifying the passed HEADERS.
-        headers = headers.copy()['In-Reply-To'] = thread_msgid(thread_key)
+        headers = headers.copy()
+        headers['In-Reply-To'] = thread_msgid(thread_key)
 
     # Optional metadata first
     if not messageid:
