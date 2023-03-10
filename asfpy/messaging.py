@@ -74,8 +74,11 @@ def mail(
 
         # Deprecated:  (use thread_*)
         messageid=None,
-        headers={ },
+        headers=None,
 ):
+    if headers is None:
+      headers = { }
+
     # Deprecating these parameters. Use THREAD_* instead.
     if messageid or headers:
         warnings.warn('Use THREAD_* instead of MESSAGEID and/or HEADERS.',
