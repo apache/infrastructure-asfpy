@@ -78,6 +78,8 @@ def mail(
 ):
     if headers is None:
       headers = { }
+    elif not isinstance(headers, dict):
+      raise TypeError("Argument headers must be a dict") 
 
     # Deprecating these parameters. Use THREAD_* instead.
     if messageid or headers:
