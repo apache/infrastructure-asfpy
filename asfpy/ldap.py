@@ -429,12 +429,12 @@ class LDIFWriter_Sane(ldif.LDIFWriter):
             # as our own library makes this a str (utf-8)
             return False
         if type(attr_value) is bytes:
-          return super()._needs_base64_encoding(attr_type, attr_value)
+            return super()._needs_base64_encoding(attr_type, attr_value)
         # short-cut to avoid encoding unless necessary
         if attr_type.lower() in self._base64_attrs:
-          return True
+            return True
         try:
-          return super()._needs_base64_encoding(attr_type, attr_value.encode('utf-8'))
+            return super()._needs_base64_encoding(attr_type, attr_value.encode('utf-8'))
         except UnicodeEncodeError:
-          return False
+            return False
 
