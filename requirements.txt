@@ -1,0 +1,4 @@
+aiohttp
+bonsai
+ldap
+requests
