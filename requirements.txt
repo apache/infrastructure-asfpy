@@ -1,3 +1,6 @@
 aiohttp
+asyncinotify
 bonsai
+ezt
+python-ldap
 requests
