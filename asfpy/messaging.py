@@ -77,8 +77,13 @@ def mail(
 
         # Deprecated:  (use thread_*)
         messageid=None,
-        headers={ },
+        headers=None,
 ):
+    if headers is None:
+        headers = { }
+    elif not isinstance(headers, dict):
+        raise TypeError("Argument headers must be a dict") 
+
     # Deprecating these parameters. Use THREAD_* instead.
     if messageid or headers:
         warnings.warn('Use THREAD_* instead of MESSAGEID and/or HEADERS.',
@@ -103,7 +108,8 @@ def mail(
         # This message is a response to the original post, identified by
         # a specific Message-ID that we constructed.
         # Note: avoid modifying the passed HEADERS.
-        headers = headers.copy()['In-Reply-To'] = thread_msgid(thread_key)
+        headers = headers.copy()
+        headers['In-Reply-To'] = thread_msgid(thread_key)
 
     # Optional metadata first
     if not messageid:
