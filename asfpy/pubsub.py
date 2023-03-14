@@ -113,7 +113,7 @@ async def _process_connection(session, pubsub_url):
                 raw = await conn.content.readuntil(b'\n')
             except ValueError as e:
                 LOGGER.error(f'Saw "{e}"; re-raising as ClientPayloadError to close/reconnect')
-                raise aiohttp.ClientPayloadError(f're-raised from ValueError in readuntil()')
+                raise aiohttp.ClientPayloadError('re-raised from ValueError in readuntil()')
 
             if not raw:
                 # We just hit EOF.
