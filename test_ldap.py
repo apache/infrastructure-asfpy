@@ -30,7 +30,7 @@ def compare(attr, value, same=True):
   else:
     if py == asf:
       print(f"NAK: {attr} '{value}' exp: {not py} act: {asf}")
-      
+
 
 compare('dn', 'abcd') # expect the same result (False)
 compare('dn', ' abcd', False) # super class will give True here
