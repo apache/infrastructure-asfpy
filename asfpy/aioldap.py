@@ -25,12 +25,8 @@
 import asyncio
 import logging
 import concurrent.futures
-import threading
 
 import bonsai
-
-# Map the various bonsai exceptions into our namespace.
-from bonsai import errors
 
 # Re-map the LDAPSearchScope constants to our namespace.
 # These can now be used as (eg.) asfpy.aioldap.SCOPE.SUBTREE
