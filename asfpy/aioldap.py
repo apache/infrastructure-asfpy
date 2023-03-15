@@ -198,7 +198,8 @@ def test_conns(client):
 
 if __name__ == '__main__':
     import os, getpass
-    dn = 'uid=%s,ou=people,dc=apache,dc=org' % ('gstein',)
-    p = os.environ.get('AIOLDAP_PASSWORD') or getpass.getpass()
+    u = os.environ.get('AIOLDAP_USER') or getpass.getuser()
+    dn = 'uid=%s,ou=people,dc=apache,dc=org' % u
+    p = os.environ.get('AIOLDAP_PASSWORD') or getpass.getpass(f"Password for {u}: ")
     c = ASF_LDAPClient('ldaps://ldap-us.apache.org:636', dn, p)
     test_conns(c)
