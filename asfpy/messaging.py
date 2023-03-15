@@ -30,6 +30,9 @@ It also contains hipchat and stride integrations
 # note: there may be some in svn:infra/trunk
 #
 
+if not __debug__:
+  raise RuntimeError("This code requires Assertions to be enabled")
+
 import email.utils
 import email.header
 import smtplib

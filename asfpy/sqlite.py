@@ -17,6 +17,9 @@
 
 "SQLite document-store wrapper for ASF."
 
+if not __debug__:
+  raise RuntimeError("This code requires Assertions to be enabled")
+
 import sqlite3
 import typing
 
