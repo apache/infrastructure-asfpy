@@ -119,7 +119,7 @@ def mail(
     # Now the required bits
     recipients = recipient or recipients  # We accept both names, 'cause
     if not recipients:
-        raise Exception("No recipients specified for email, can't send!")
+        raise ValueError("No recipients specified for email, can't send!")
     # We want this as a list
     if isinstance(recipients, str):
         recipients = [recipients]
