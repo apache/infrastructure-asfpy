@@ -83,7 +83,7 @@ async def ldapsearch_cli_async(
 
     # Run asfldapsearch tool, parse the output and return the data structure
     cliargs = ldapsearch_cliargs(ldap_base, ldap_scope, ldap_query, ldap_attrs)
-    proc = await asyncio.subprocess.create_subprocess_exec(cliargs[0], *cliargs[1:], stdout=asyncio.subprocess.PIPE)
+    proc = await asyncio.subprocess.create_subprocess_exec(cliargs[0], *cliargs[1:], stdout=asyncio.subprocess.PIPE) # pylint: disable=no-member
     await proc.wait()
     output = (await proc.stdout.read()).decode("us-ascii")
     return ldapsearch_parse(output)
