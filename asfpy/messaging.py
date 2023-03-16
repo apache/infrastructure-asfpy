@@ -31,7 +31,7 @@ It also contains hipchat and stride integrations
 #
 
 if not __debug__:
-  raise RuntimeError("This code requires Assertions to be enabled")
+    raise RuntimeError("This code requires Assertions to be enabled")
 
 import email.utils
 import email.header
