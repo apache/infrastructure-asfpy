@@ -87,6 +87,7 @@ disable=raw-checker-failed,
         useless-suppression,
         deprecated-pragma,
         use-symbolic-message-instead,
+        attribute-defined-outside-init,
         C,R,
         R0903,R0913,R0912,R0914,R0915,
         R1706, # ternary
