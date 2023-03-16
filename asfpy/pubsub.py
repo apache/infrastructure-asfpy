@@ -125,7 +125,6 @@ async def _process_connection(session, pubsub_url):
 def test_listening():
     logging.basicConfig(level=logging.DEBUG)
 
-    import time
     start = time.time()
     count = 0
 
