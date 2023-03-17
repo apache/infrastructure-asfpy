@@ -32,7 +32,6 @@ def main():
         install_requires=[
             'requests',
             'ezt',
-            'stdiomask',
             'requests',
             'aiohttp',
             'asyncinotify',
