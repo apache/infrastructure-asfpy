@@ -51,7 +51,7 @@ def ldapsearch_cliargs(ldap_base, ldap_scope, ldap_query, ldap_attrs):
 
 def ldapsearch_cli(
     ldap_base="dc=apache,dc=org",
-    ldap_scope="sub",
+    ldap_scope="one",
     ldap_query="*",
     ldap_attrs=("cn",),
 ):
@@ -70,7 +70,7 @@ def ldapsearch_cli(
 
 async def ldapsearch_cli_async(
     ldap_base="dc=apache,dc=org",
-    ldap_scope="sub",
+    ldap_scope="one",
     ldap_query="*",
     ldap_attrs=("cn",),
 ):
