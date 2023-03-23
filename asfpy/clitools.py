@@ -26,10 +26,10 @@ def ldapsearch_parse(indata: str):
     return results  # Return the list of results
 
 
-def ldapsearch_cliargs(ldap_base, ldap_scope, ldap_query, ldap_attrs):
+def ldapsearch_cliargs(ldap_base, ldap_scope, ldap_query, ldap_attrs, ldap_exec):
     """Constructs a list of command line arguments for asfldapsearch"""
     cliargs = [
-        "/usr/bin/asfldapsearch",  # Executable
+        "/usr/bin/asfldapsearch" if ldap_exec is None else ldap_exec,  # Executable
         "-x",  # Simple bind
         "-LLL",  # be very concise
         "-b",  # Set base of search operations to...
@@ -54,6 +54,7 @@ def ldapsearch_cli(
     ldap_scope="one",
     ldap_query="*",
     ldap_attrs=("cn",),
+    ldap_exec=None,
 ):
     """Runs a search in LDAP using (asf)ldapsearch and returns the results as a list of dictionaries
     :param ldap_base:  The base for the LDAP search
@@ -63,7 +64,7 @@ def ldapsearch_cli(
     """
 
     # Run asfldapsearch tool, parse the output and return the data structure
-    cliargs = ldapsearch_cliargs(ldap_base, ldap_scope, ldap_query, ldap_attrs)
+    cliargs = ldapsearch_cliargs(ldap_base, ldap_scope, ldap_query, ldap_attrs, ldap_exec)
     output = subprocess.run(cliargs, stdout=subprocess.PIPE).stdout.decode("us-ascii")
     return ldapsearch_parse(output)
 
@@ -73,6 +74,7 @@ async def ldapsearch_cli_async(
     ldap_scope="one",
     ldap_query="*",
     ldap_attrs=("cn",),
+    ldap_exec=None,
 ):
     """Runs an async search in LDAP using (asf)ldapsearch and returns the results as a list of dictionaries
     :param ldap_base:  The base for the LDAP search
@@ -82,7 +84,7 @@ async def ldapsearch_cli_async(
     """
 
     # Run asfldapsearch tool, parse the output and return the data structure
-    cliargs = ldapsearch_cliargs(ldap_base, ldap_scope, ldap_query, ldap_attrs)
+    cliargs = ldapsearch_cliargs(ldap_base, ldap_scope, ldap_query, ldap_attrs, ldap_exec)
     proc = await asyncio.subprocess.create_subprocess_exec(cliargs[0], *cliargs[1:], stdout=asyncio.subprocess.PIPE) # pylint: disable=no-member
     await proc.wait()
     output = (await proc.stdout.read()).decode("us-ascii")
