@@ -166,7 +166,10 @@ Content-Transfer-Encoding: 8bit
 """ % (sender_encoded, recipient_encoded, subject_encoded, messageid, date, extra, message)
     msg = msg.encode('utf-8', errors='replace')
     # Try to dispatch message, do a raw fail if stuff happens.
-    smtp_object = smtplib.SMTP(host, SMTP_PORT)
+    if ":" in host:  # Port specified in hostname
+        smtp_object = smtplib.SMTP(host)
+    else:  # Default port
+        smtp_object = smtplib.SMTP(host, SMTP_PORT)
     smtp_object.starttls()
     if auth:
         smtp_object.login(*auth)  # user, pwd
