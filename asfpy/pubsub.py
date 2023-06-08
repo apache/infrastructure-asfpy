@@ -48,8 +48,11 @@ DEFAULT_INACTIVITY_TIMEOUT = 11
 ### for debug:
 #DEFAULT_INACTIVITY_TIMEOUT = 4.5
 
+# Default read buffer size. Max payload size in pypubsub is 256kb (plus metadata and JSON overhead)
+DEFAULT_READ_BUFFER_SIZE = 300 * 1024
 
-async def listen(pubsub_url, username=None, password=None, timeout=None):
+
+async def listen(pubsub_url, username=None, password=None, timeout=None, buffersize=None):
 
     if username:
         auth = aiohttp.BasicAuth(username, password)
@@ -59,8 +62,11 @@ async def listen(pubsub_url, username=None, password=None, timeout=None):
     if timeout is None:
         timeout = DEFAULT_INACTIVITY_TIMEOUT
     ct = aiohttp.ClientTimeout(sock_read=timeout)
+    
+    if buffersize is None:
+        buffersize = DEFAULT_READ_BUFFER_SIZE
 
-    async with aiohttp.ClientSession(auth=auth, timeout=ct) as session:
+    async with aiohttp.ClientSession(auth=auth, timeout=ct, read_bufsize=buffersize) as session:
 
         # Retry immediately, and then back it off.
         delay = 0.0
