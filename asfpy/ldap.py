@@ -413,31 +413,3 @@ class manager:
         self.lc.add_s(dn, am)
 
         return self.load_account(uid)
-
-
-class LDIFWriter_Sane(ldif.LDIFWriter):
-    """
-    LDIFWriter with b64 detection overridden to allow for use of utf-8 rather than bytes
-    Also disables b64 encoding for the 'dn' attribute
-    """
-
-    def _needs_base64_encoding(self, attr_type, attr_value):
-        """
-        returns False if attr_type is 'dn'
-        returns True if attr_value has to be base-64 encoded because
-        of special chars or because attr_type is in self._base64_attrs
-        """
-        if attr_type.lower() == 'dn':
-            # We must always exclude DN
-            # as our own library makes this a str (utf-8)
-            return False
-        if type(attr_value) is bytes:
-            return super()._needs_base64_encoding(attr_type, attr_value)
-        # short-cut to avoid encoding unless necessary
-        if attr_type.lower() in self._base64_attrs:
-            return True
-        try:
-            return super()._needs_base64_encoding(attr_type, attr_value.encode('utf-8'))
-        except UnicodeEncodeError:
-            return False
-
