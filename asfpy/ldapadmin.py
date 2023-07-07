@@ -201,30 +201,9 @@ class committer:
         newdn_enc = newdn.encode('ascii')
         print("Changing %s to %s" % (odn, newdn))
         self.manager.lc.modrdn_s(odn, 'uid=%s' % xuid)
-        # Search and rename
-
-        # Replace long refs: member + owner
-        for role in ['member', 'owner']:
-            res = self.manager.lc.search_s(LDAP_SUFFIX, ldap.SCOPE_SUBTREE, '%s=%s' % (role, self.dn_enc.decode('ascii')))
-            for entry in res:
-                cn = entry[0]
-                myhash = entry[1]
-                if self.dn_enc in myhash[role]:
-                    print("Modifying (long) %s attribute in %s ..." % (role, cn))
-                    self.manager.lc.modify_s(cn, [(ldap.MOD_DELETE, role, self.dn_enc)])
-                    self.manager.lc.modify_s(cn, [(ldap.MOD_ADD, role, newdn_enc)])
-
-        # Replace short refs: memberUid
-        ouid = self.uid.encode('ascii')
-        for role in ['memberUid']:
-            res = self.manager.lc.search_s(LDAP_SUFFIX, ldap.SCOPE_SUBTREE, '(&(objectClass=posixGroup)(%s=%s))' % (role, self.uid))
-            for entry in res:
-                cn = entry[0]
-                myhash = entry[1]
-                if ouid in myhash[role]:
-                    print("Modifying (short) %s attribute in %s ..." % (role, cn))
-                    self.manager.lc.modify_s(cn, [(ldap.MOD_DELETE, role, ouid)])
-                    self.manager.lc.modify_s(cn, [(ldap.MOD_ADD, role, newuid)])
+        
+        # Search and rename in LDAP groups
+        self.manager.redirect_uid(self.uid, newuid)
 
         # Change in-object
         self.uid = xuid
@@ -401,3 +380,48 @@ class manager:
         self.lc.add_s(dn, am)
 
         return self.load_account(uid)
+
+    def redirect_uid(self, from_uid: str, to_uid: str):
+        """Redirects auth granted from one userid to another, such as would happen in renames"""
+        # Ensure we have strings, not bytestrings
+        if isinstance(from_uid, bytes):
+            from_uid = from_uid.decode('ascii')
+        if isinstance(to_uid, bytes):
+            to_uid = to_uid.decode('ascii')
+
+        # Validate from_uid and to_uid
+        if not LDAP_VALID_UID_RE.match(from_uid):
+            raise ValidatorException(f"Invalid UID '{from_uid}', must match ^[a-z0-9][a-z0-9_]+$")
+        if not LDAP_VALID_UID_RE.match(to_uid):
+            raise ValidatorException(f"Invalid UID '{to_uid}', must match ^[a-z0-9][a-z0-9_]+$")
+        
+        # Set up string and bytestring versions of each element in long and short form
+        from_dn = LDAP_DN % from_uid
+        from_dn_enc = from_dn.encode('ascii')
+        to_dn = LDAP_DN % to_uid
+        to_dn_enc = to_dn.encode('ascii')
+        from_uid_enc = from_uid.encode('ascii')
+        to_uid_enc = to_uid.encode('ascii')
+        
+        # Replace long refs: member + owner
+        for role in ['member', 'owner']:
+            res = self.lc.search_s(LDAP_SUFFIX, ldap.SCOPE_SUBTREE, '%s=%s' % (role, from_dn))
+            for entry in res:
+                cn = entry[0]
+                myhash = entry[1]
+                if from_dn_enc in myhash[role]:
+                    print("Modifying (long) %s attribute in %s ..." % (role, cn))
+                    self.lc.modify_s(cn, [(ldap.MOD_DELETE, role, from_dn_enc)])
+                    self.lc.modify_s(cn, [(ldap.MOD_ADD, role, to_dn_enc)])
+
+        # Replace short refs: memberUid
+        for role in ['memberUid']:
+            res = self.lc.search_s(LDAP_SUFFIX, ldap.SCOPE_SUBTREE, '(&(objectClass=posixGroup)(%s=%s))' % (role, from_uid))
+            for entry in res:
+                cn = entry[0]
+                myhash = entry[1]
+                if from_uid_enc in myhash[role]:
+                    print("Modifying (short) %s attribute in %s ..." % (role, cn))
+                    self.lc.modify_s(cn, [(ldap.MOD_DELETE, role, from_uid_enc)])
+                    self.lc.modify_s(cn, [(ldap.MOD_ADD, role, to_uid_enc)])
+
