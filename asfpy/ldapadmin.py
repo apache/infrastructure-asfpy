@@ -183,9 +183,6 @@ class committer:
         if res:
             raise ValidatorException("availid clashes with project name %s!" % res[0][0], 'uid')
 
-        # We'll need to assign a new uidNumber as well..
-        uidnumber = self.manager.next_user_uid()
-
         # Switch email and home dir
         changeset = []
         o_email = self.attributes['asf-committer-email'].encode('ascii')
@@ -196,15 +193,6 @@ class committer:
         changeset.append((ldap.MOD_ADD, 'asf-committer-email', n_email))
         changeset.append((ldap.MOD_DELETE, 'homeDirectory', o_homedir))
         changeset.append((ldap.MOD_ADD, 'homeDirectory', n_homedir))
-
-        # Change UID Number - has to be done all in one atomic go.
-        ouidn = self.attributes['uidNumber'].encode('ascii')
-        nuidn = b'%u' % uidnumber
-        print("Changing uidNumber/gidNumber to %s..." % uidnumber)
-        changeset.append((ldap.MOD_DELETE, 'gidNumber', ouidn))
-        changeset.append((ldap.MOD_ADD, 'gidNumber', nuidn))
-        changeset.append((ldap.MOD_DELETE, 'uidNumber', ouidn))
-        changeset.append((ldap.MOD_ADD, 'uidNumber', nuidn))
         self.manager.lc.modify_s(self.dn, changeset)
 
         # Change DN
