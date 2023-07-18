@@ -45,6 +45,7 @@ LDAP_CN = 'cn=%s,%s'
 
 # INFRA-21590 ApacheID cannot have dashes.
 LDAP_VALID_UID_RE = re.compile(r"^[a-z0-9][a-z0-9_]+$")
+LDAP_VALID_CN_RE = re.compile(r"^[-._a-z0-9]+$")  # Valid cn, not necessarily what we consider a valid UID
 # New user account UIDs will be larger than this value.
 # Conversely: service accounts will be less than this.
 # NOTE: this value was chosen to ensure enough lower-value
@@ -390,8 +391,8 @@ class manager:
             to_uid = to_uid.decode('ascii')
 
         # Validate from_uid and to_uid
-        if not LDAP_VALID_UID_RE.match(from_uid):
-            raise ValidatorException(f"Invalid UID '{from_uid}', must match ^[a-z0-9][a-z0-9_]+$")
+        if not LDAP_VALID_CN_RE.match(from_uid):
+            raise ValidatorException(f"Invalid UID '{from_uid}', must match ^[-._a-z0-9]+$")
         if not LDAP_VALID_UID_RE.match(to_uid):
             raise ValidatorException(f"Invalid UID '{to_uid}', must match ^[a-z0-9][a-z0-9_]+$")
         
