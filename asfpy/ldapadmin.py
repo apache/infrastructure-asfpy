@@ -304,6 +304,8 @@ class manager:
                     return(uid)
                 continue
 
+            raise ConnectionException('Unable to find a UID') # Should not happen, but ...
+
         except ldap.TIMEOUT:
             raise ConnectionException(BACKEND_TIMEOUT)
         except AssertionError:
