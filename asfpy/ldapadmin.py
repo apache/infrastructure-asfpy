@@ -374,6 +374,10 @@ class manager:
             'host': 'home.apache.org',
         }
 
+         # givenName is optional; drop it if there is a single name
+        if len(names) == 1:
+            del ldiff['givenName']
+
         # Convert everything to bytestrings because ldap demands it...
         bytify(ldiff)
 
