@@ -25,7 +25,6 @@ assert sys.version_info >= (3, 2)
 
 import ldap
 import ldap.modlist
-import ldif
 import re
 import crypt
 import random
