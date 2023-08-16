@@ -339,6 +339,14 @@ class manager:
         uidnumber = self.next_user_uid()
 
         # Get surname and given name, validate against spurious whitespace
+
+        # N.B. in general, it is not possible to reliably extract these from a full name
+        #  e.g. if the full name consists of more that 2 parts, how many are surnames?
+        # Also some cultures may reverse the order. Etc. Human namimg is very complicated.
+        # [The sn and givenName LDAP attributes don't apply to all cultures.]
+        # Luckily sn and givenName are not actually used, so this code can just satisfy the
+        # LDAP schema requirements without needing to be 100% accurate.
+
         names = fullname.split(' ')
         if len(names) < 2 and requireTwo:
             raise ValidatorException("Full name needs at least two parts!", 'fullname')
