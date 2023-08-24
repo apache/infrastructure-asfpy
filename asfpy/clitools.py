@@ -65,7 +65,7 @@ def ldapsearch_cli(
 
     # Run asfldapsearch tool, parse the output and return the data structure
     cliargs = ldapsearch_cliargs(ldap_base, ldap_scope, ldap_query, ldap_attrs, ldap_exec)
-    output = subprocess.run(cliargs, stdout=subprocess.PIPE).stdout.decode("us-ascii")
+    output = subprocess.run(cliargs, stdout=subprocess.PIPE, check=True).stdout.decode("us-ascii")
     return ldapsearch_parse(output)
 
 
