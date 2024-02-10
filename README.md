@@ -26,6 +26,7 @@ The above command will upload the `.whl` and the `.tar.gz` (the glob-asterisk is
 
 See [this guide](https://realpython.com/pypi-publish-python-package/#publish-your-package-to-pypi) for more details on working with PyPi.
 
+Please also create a tag for the release.
 
 ### for testing
 
