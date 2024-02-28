@@ -149,7 +149,7 @@ def test_listening():
                   f'  traffic: {alive_since}s ago')
 
     async def print_events():
-        async for payload in listen('https://pubsub.apache.org:2070/'):
+        async for payload in listen('https://pubsub.apache.org:2069/'):
             nonlocal last_traffic
             last_traffic = time.time()
 
