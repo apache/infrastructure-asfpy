@@ -54,9 +54,13 @@ class TemplateWatcher:
         Returns an instance of ezt.Template()
         """
 
+        LOGGER.info(f'Watching: {path}')
         t = ezt.Template(path, **kwargs)
         bf = kwargs.get('base_format', ezt.FORMAT_RAW)
-        self.templates[path] = (t, bf)
+
+        # Use str(path) in case PATH is a pathlib.Path instance.
+        self.templates[str(path)] = (t, bf)
+
         self.inotify.add_watch(path,
                                asyncinotify.Mask.MODIFY
                                | asyncinotify.Mask.MASK_CREATE)
