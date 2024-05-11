@@ -21,46 +21,46 @@ import unittest.mock
 
 # run with mock; return message as array
 def mock_smtplib(kwargs):
-  with unittest.mock.patch('smtplib.SMTP', autospec=True) as smtpmock:
-    asfpy.messaging.mail(**kwargs)
-    for name, args, _ in smtpmock.method_calls:
-      if name.endswith('sendmail'):
-        _, _, msg = args
-        return msg.split(b'\n')
-  raise AssertionError("Failed to extract message from smtplib call")
+    with unittest.mock.patch('smtplib.SMTP', autospec=True) as smtpmock:
+        asfpy.messaging.mail(**kwargs)
+        for name, args, _ in smtpmock.method_calls:
+            if name.endswith('sendmail'):
+                _, _, msg = args
+                return msg.split(b'\n')
+    raise AssertionError("Failed to extract message from smtplib call")
 
 def test_arguments():
-  with pytest.raises(AssertionError) as excinfo:
-    asfpy.messaging.mail()
-  assert 'Message body is required.' in str(excinfo.value)
+    with pytest.raises(AssertionError) as excinfo:
+        asfpy.messaging.mail()
+    assert 'Message body is required.' in str(excinfo.value)
 
-  with pytest.raises(AssertionError) as excinfo:
-    asfpy.messaging.mail(message='Test body')
-  assert 'All required arguments must be provided.' in str(excinfo.value)
-  
-  with pytest.raises(TypeError) as excinfo:
-    asfpy.messaging.mail(message='Test body2', headers='')
-  assert 'headers must be a dict' in str(excinfo.value)
-  
-  base = { "message":'Test body3', "subject": 'Subject', "recipient": 'nemo@invalid', "host": 'localhost' }
-  msg = mock_smtplib(base)
-  assert 'Message-ID:' in str(msg)
+    with pytest.raises(AssertionError) as excinfo:
+        asfpy.messaging.mail(message='Test body')
+    assert 'All required arguments must be provided.' in str(excinfo.value)
 
-  base.update({"thread_start": False, "thread_key": None})
-  msg = mock_smtplib(base)
-  assert 'Message-ID:' in str(msg)
+    with pytest.raises(TypeError) as excinfo:
+        asfpy.messaging.mail(message='Test body2', headers='')
+    assert 'headers must be a dict' in str(excinfo.value)
 
-  base.update({"thread_start": True, "thread_key": None})
-  with pytest.raises(AssertionError) as excinfo:
-    asfpy.messaging.mail(**base)
-  assert 'THREAD_KEY must be provided when starting a thread' in str(excinfo.value)
+    base = { "message":'Test body3', "subject": 'Subject', "recipient": 'nemo@invalid', "host": 'localhost' }
+    msg = mock_smtplib(base)
+    assert 'Message-ID:' in str(msg)
 
-  base.update({"thread_start": True, "thread_key": 'testKey'})
-  msg = mock_smtplib(base)
-  assert 'Message-ID: <asfpy-testKey@apache.org>' in str(msg)
-  assert 'In-Reply-To:' not in str(msg)
+    base.update({"thread_start": False, "thread_key": None})
+    msg = mock_smtplib(base)
+    assert 'Message-ID:' in str(msg)
 
-  base.update({"thread_start": False, "thread_key": 'testKey'})
-  msg = mock_smtplib(base)
-  assert 'In-Reply-To: <asfpy-testKey@apache.org>' in str(msg)
-  assert 'Message-ID: <asfpy-testKey@apache.org>' not in str(msg)
+    base.update({"thread_start": True, "thread_key": None})
+    with pytest.raises(AssertionError) as excinfo:
+        asfpy.messaging.mail(**base)
+    assert 'THREAD_KEY must be provided when starting a thread' in str(excinfo.value)
+
+    base.update({"thread_start": True, "thread_key": 'testKey'})
+    msg = mock_smtplib(base)
+    assert 'Message-ID: <asfpy-testKey@apache.org>' in str(msg)
+    assert 'In-Reply-To:' not in str(msg)
+
+    base.update({"thread_start": False, "thread_key": 'testKey'})
+    msg = mock_smtplib(base)
+    assert 'In-Reply-To: <asfpy-testKey@apache.org>' in str(msg)
+    assert 'Message-ID: <asfpy-testKey@apache.org>' not in str(msg)
