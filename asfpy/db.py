@@ -71,16 +71,16 @@ class _Cursor(sqlite3.Cursor):
         super().__init__(conn)
         self.statement = statement
 
-    def perform(self, params=()):
+    def perform(self, *params):
         "Perform the statement with PARAMs, or prepare the query."
 
         # Use the exact same STATEMENT each time. Python's SQLite module
         # caches the parsed statement, if the string is the same object.
         self.execute(self.statement, params)
 
-    def first_row(self, params=()):
+    def first_row(self, *params):
         "Helper method to fetch the first row of a query."
-        self.perform(params)
+        self.perform(*params)
         row = self.fetchone()
         # We do not want to close the cursor. Thus, we must run the fetch
         # to completion instead. For queries using .first_row() this should
