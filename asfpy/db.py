@@ -30,6 +30,7 @@
 #
 
 import sqlite3
+import functools
 
 import yaml
 import easydict
@@ -53,15 +54,19 @@ class DB:
                 ### fix this exception
                 raise Exception(f'duplicate: {name}')
             print(f'{name}: {sql}')
-            setattr(self, name, _Cursor(self.conn, sql))
+            setattr(self, name, self.cursor_for(sql))
 
     def cursor_for(self, statement):
-        return _Cursor(self.conn, statement)
+        return self.conn.cursor(_Cursor.factory_for(statement))
 
 
 class _Cursor(sqlite3.Cursor):
 
-    def __init__(self, conn, statement):
+    @classmethod
+    def factory_for(cls, statement):
+        return functools.partial(cls, statement)
+
+    def __init__(self, statement, conn):
         super().__init__(conn)
         self.statement = statement
 
