@@ -48,13 +48,14 @@ class DB:
         self.conn = sqlite3.connect(fname, isolation_level=None)
         self.conn.row_factory = row_factory
 
-        yml = yaml.safe_load(open(yaml_fname))
-        for name, sql in yml[yaml_section].items():
-            if hasattr(self, name):
-                ### fix this exception
-                raise Exception(f'duplicate: {name}')
-            print(f'{name}: {sql}')
-            setattr(self, name, self.cursor_for(sql))
+        if yaml_fname:
+            yml = yaml.safe_load(open(yaml_fname))
+            for name, sql in yml.get(yaml_section, { }).items():
+                if hasattr(self, name):
+                    ### fix this exception
+                    raise Exception(f'duplicate: {name}')
+                print(f'{name}: {sql}')
+                setattr(self, name, self.cursor_for(sql))
 
     def cursor_for(self, statement):
         return self.conn.cursor(_Cursor.factory_for(statement))
