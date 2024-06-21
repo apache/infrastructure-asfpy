@@ -37,34 +37,57 @@ import easydict
 
 
 class DB:
+    """Wrapper/functional class for accessing Sqlite3 databases.
+
+    This class focuses on returning EasyDict instances for query results,
+    so that columns can be indexed by name instead of position.
+
+    In addition, it makes it easy to create cursors for later usage. Naming
+    the cursors establishes a self-documenting mechanism when performing
+    the statement or query. These cursors may be establishing through the
+    use a .yaml file to clarify the SQL operations in a file for that
+    purpose, instead of mixing them throughout a codebase.
+    """
 
     def __init__(self, fname, yaml_fname=None, yaml_section='queries'):
 
         def row_factory(cursor, row):
-            # Enable attribute access. Disable integer index access.
+            "Return an EasyDict of the row, for attribute access."
             return easydict.EasyDict(sqlite3.Row(cursor, row))
 
         # Note: isolation_level=None means autocommit mode.
         self.conn = sqlite3.connect(fname, isolation_level=None)
         self.conn.row_factory = row_factory
 
+        # If a YAML file containing SQL queries is presented, then create
+        # cursors for each statement, and storing those cursors as (named)
+        # attributes on SELF, for later use by the calling application.
         if yaml_fname:
+            # Note: this could be a general configuration file for the
+            # application. We'll look at just one section of it.
             yml = yaml.safe_load(open(yaml_fname))
+
+            # The YAML_SECTION (default "queries") should have names of
+            # queries, to use as attributes, and the value should be the
+            # SQL statement/query.
             for name, sql in yml.get(yaml_section, { }).items():
                 if hasattr(self, name):
                     ### fix this exception
                     raise Exception(f'duplicate: {name}')
-                print(f'{name}: {sql}')
+                #print(f'{name}: {sql}')
                 setattr(self, name, self.cursor_for(sql))
 
     def cursor_for(self, statement):
+        "Return our custom cursor for the given statement."
         return self.conn.cursor(_Cursor.factory_for(statement))
 
 
 class _Cursor(sqlite3.Cursor):
+    "A cursor subclass providing helper methods."
 
     @classmethod
     def factory_for(cls, statement):
+        "Return a factory to construct instances for the given STATEMENT."
         return functools.partial(cls, statement)
 
     def __init__(self, statement, conn):
@@ -86,4 +109,11 @@ class _Cursor(sqlite3.Cursor):
         # to completion instead. For queries using .first_row() this should
         # be no further rows.
         _ = self.fetchall()
-        return row
+        return row  # note the ROW_FACTORY implies this is an EasyDict
+
+
+if __name__ == '__main__':
+    ### maybe run some tests?
+    import sys
+    sys.stderr.write('ERROR: this module is not for command line use.\n')
+    sys.exit(1)

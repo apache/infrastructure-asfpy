@@ -4,3 +4,4 @@ bonsai
 ezt
 python-ldap
 requests
+easydict
