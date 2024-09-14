@@ -32,7 +32,7 @@
 import logging
 
 import ezt
-import asyncinotify
+import watchfiles
 
 LOGGER = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ class TemplateWatcher:
         # PATH : (ezt.Template, BASE_FORMAT)
         self.templates = { }
 
-        self.inotify = asyncinotify.Inotify()
+        self.files = set()
 
     def load_template(self, path, **kwargs):
         """Load template at PATH with **KWARGS.
@@ -61,21 +61,21 @@ class TemplateWatcher:
         # Use str(path) in case PATH is a pathlib.Path instance.
         self.templates[str(path)] = (t, bf)
 
-        self.inotify.add_watch(path,
-                               asyncinotify.Mask.MODIFY
-                               | asyncinotify.Mask.MASK_CREATE)
+        self.files.add(path)
+
         return t
 
     async def watch_forever(self):
-        with self.inotify:
-            async for event in self.inotify:
-                path = str(event.path)
-                LOGGER.info(f'Template changed: {path}')
-                #print(event)
+        async for changes in watchfiles.awatch(*self.files):
+            for event in changes:
+                if event[0] == watchfiles.Change.modified or event[0] == watchfiles.Change.added:
+                    path = str(event[1])
+                    LOGGER.info(f'Template changed: {path}')
+                    #print(event)
 
-                # Reparse the file.
-                t, bf = self.templates[path]
-                t.parse_file(path, bf)
+                    # Reparse the file.
+                    t, bf = self.templates[path]
+                    t.parse_file(path, bf)
 
 
 def test_watcher(fnames):
