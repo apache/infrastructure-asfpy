@@ -72,8 +72,8 @@ class DB:
             # SQL statement/query.
             for name, sql in yml.get(yaml_section, { }).items():
                 if hasattr(self, name):
-                    ### fix this exception
-                    raise Exception(f'duplicate: {name}')
+                    ### ValueError seems to be the bog standard for duplicates
+                    raise ValueError(f'duplicate: {name}')
                 #print(f'{name}: {sql}')
                 setattr(self, name, self.cursor_for(sql))
 
