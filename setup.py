@@ -35,6 +35,8 @@ def main():
             'requests',
             'aiohttp',
             'asyncinotify',
+            'cryptography',
+            'cffi',
         ],
         extras_require= {
             'ldap': ['python-ldap'],
