@@ -6,3 +6,5 @@ python-ldap
 requests
 easydict
 pyyaml
+cryptography
+cffi
