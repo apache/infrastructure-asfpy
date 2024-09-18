@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Auxiliary crypto features. Just ED25519 signing for now."""
+import binascii
 
 import cryptography.exceptions
 import cryptography.hazmat.primitives.asymmetric.ed25519
@@ -62,24 +63,43 @@ class ED25519:
             encoding=ED25519_ENCODING, format=ED25519_PRIVKEY_FORMAT, encryption_algorithm=ED25519_PEM_ENCRYPTION
         ).decode("us-ascii")
 
-    def generate_auth_token(self):
-        """Generates a token of authenticity using the private key. This token can be verified using the public key.
-        The token uses the format 'hextoken:hextoken-signature' where hextoken is a random 32 byte string and
-        hextoken-signature is the signed counterpart."""
-        token_nonce = secrets.token_hex(32)
-        signed_token = self._privkey.sign(token_nonce.encode("us-ascii"))
-        response = token_nonce + ":" + base64.b64encode(signed_token).decode("us-ascii")
+    def sign_data(self, data: str = "", output_b64=False):
+        """Signs a string with the private key for authenticity purposes.
+        The signature includes a nonce for randomizing the response and returns three lines, split by newline:
+        data-plus-nonce-signature
+        nonce
+        data
+
+        The blob can be verified by verify_data, which will return the verified data if the signature is valid,
+        else None.
+
+        If output_b64 is True, the signed data is base64-encoded and returned as a single line. This can be
+        useful for HTTP-based access tokens.
+        """
+        nonce = secrets.token_hex(32)
+        data_plus_nonce = "\n".join([nonce, data])
+        data_signature = self._privkey.sign(data_plus_nonce.encode("us-ascii"))
+        response = "\n".join([base64.b64encode(data_signature).decode("us-ascii"), nonce, data])
+        if output_b64:
+            response = base64.b64encode(response.encode('us-ascii')).decode('us-ascii')
         return response
 
-    def verify_authenticity_token(self, token):
-        """Verifies the authenticity of a token. If signed by the private key, returns True, otherwise False."""
+    def verify_response(self, data: str):
+        """Verifies the authenticity of a data blob. If signed by the private key,
+        returns the original data that was signed, otherwise None"""
         try:
-            hex_bit, signature = token.split(":", 1)
+            if "\n" not in data:  # base64-encoded one-liner?
+                try:
+                    data = base64.b64decode(data).decode('us-ascii')
+                except binascii.Error:  # Not base64!
+                    return None
+            signature, data_plus_nonce = data.split("\n", 1)
             signature = base64.b64decode(signature)
         except ValueError:  # Bad token format or invalid base64 signature, FAILURE.
-            return False
+            return
         try:
-            self._pubkey.verify(signature, hex_bit.encode("us-ascii"))
-            return True
+            _nonce, data_verified = data_plus_nonce.split("\n", 1)
+            self._pubkey.verify(signature, data_plus_nonce.encode("us-ascii"))
+            return data_verified
         except cryptography.exceptions.InvalidSignature:
-            return False
+            return

@@ -18,17 +18,17 @@
 import pytest
 import asfpy.crypto
 
+TESTMSG = "Hello, world!"
 
 def test_ed25519_keypair():
     keypair = asfpy.crypto.ED25519()
     assert keypair.pubkey, "Could not find pubkey"
     assert keypair.privkey, "Could not find privkey"
-    test_token = keypair.generate_auth_token()
-    print(f"test token: {test_token}")
+    test_token = keypair.sign_data(TESTMSG)
 
     # Test verification with proper and invalid sig
-    assert keypair.verify_authenticity_token(test_token) is True, "Verification of test token failed!"
-    assert keypair.verify_authenticity_token("foo:bar") is False, "Verification succeeded with bogus token, not supposed to happen!"
+    assert keypair.verify_response(test_token) == TESTMSG, "Verification of test token failed!"
+    assert keypair.verify_response("foo:bar") is None, "Verification succeeded with bogus token, not supposed to happen!"
 
 
 def test_existing_keys():
@@ -36,11 +36,11 @@ def test_existing_keys():
     private_pem = open("test/data/ed25519_privkey.pem").read()
     pubkeypair = asfpy.crypto.ED25519(pubkey=public_pem)
     privkeypair = asfpy.crypto.ED25519(privkey=private_pem)
+    print(privkeypair._privkey.public_key())
 
     # Test readability of private test key
-    assert privkeypair.privkey is not None, "Public key is empty when it shouldn't be!"
-    with pytest.raises(AssertionError):  # Private key shouldn't exist
-        print(privkeypair.pubkey)
+    assert privkeypair.privkey is not None, "Private key is empty when it shouldn't be!"
+    assert privkeypair.pubkey is not None, "Public key is empty when it shouldn't be!"
 
     # Test readability of public test key
     assert pubkeypair.pubkey is not None, "Public key is empty when it shouldn't be!"
@@ -48,9 +48,8 @@ def test_existing_keys():
         print(pubkeypair.privkey)
 
     # Sign with private key
-    test_token = privkeypair.generate_auth_token()
-    print(f"test token: {test_token}")
+    test_token = privkeypair.sign_data(TESTMSG)
 
     # Test verification with proper and invalid sig with imported public key
-    assert pubkeypair.verify_authenticity_token(test_token) is True, "Verification of test token failed!"
-    assert pubkeypair.verify_authenticity_token("foo:bar") is False, "Verification succeeded with bogus token, not supposed to happen!"
+    assert pubkeypair.verify_response(test_token) == TESTMSG, "Verification of test token failed!"
+    assert pubkeypair.verify_response("foo:bar") is None, "Verification succeeded with bogus token, not supposed to happen!"
