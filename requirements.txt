@@ -5,3 +5,5 @@ ezt
 python-ldap
 requests
 easydict
+cryptography
+cffi
