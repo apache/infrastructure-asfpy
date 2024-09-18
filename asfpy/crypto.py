@@ -35,10 +35,12 @@ class ED25519:
         If pubkey is set, it loads it as a PEM-formatted key, same with privkey.
         If no public or private key is passed on, a new keypair is created instead."""
         if pubkey:
-            self._pubkey = cryptography.hazmat.primitives.serialization.load_pem_public_key(pubkey.encode('us-ascii'))
+            self._pubkey = cryptography.hazmat.primitives.serialization.load_pem_public_key(pubkey.encode("us-ascii"))
             self._privkey = None
         elif privkey:
-            self._privkey = cryptography.hazmat.primitives.serialization.load_pem_private_key(privkey.encode('us-ascii'), password=None)
+            self._privkey = cryptography.hazmat.primitives.serialization.load_pem_private_key(
+                privkey.encode("us-ascii"), password=None
+            )
             self._pubkey = None
         else:
             self._privkey = cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PrivateKey.generate()
@@ -46,23 +48,25 @@ class ED25519:
 
     @property
     def pubkey(self):
-        """"Returns the public key (if present) in PEM format"""
+        """ "Returns the public key (if present) in PEM format"""
         assert self._pubkey, "No public key found, cannot PEM-encode nothing!"
-        return self._pubkey.public_bytes(encoding=ED25519_ENCODING, format=ED25519_PUBKEY_FORMAT).decode('us-ascii')
+        return self._pubkey.public_bytes(encoding=ED25519_ENCODING, format=ED25519_PUBKEY_FORMAT).decode("us-ascii")
 
     @property
     def privkey(self):
-        """"Returns the private key (if present) in PEM format"""
+        """ "Returns the private key (if present) in PEM format"""
         assert self._privkey, "No public key found, cannot PEM-encode nothing!"
-        return self._privkey.private_bytes(encoding=ED25519_ENCODING, format=ED25519_PRIVKEY_FORMAT, encryption_algorithm=ED25519_PEM_ENCRYPTION).decode('us-ascii')
+        return self._privkey.private_bytes(
+            encoding=ED25519_ENCODING, format=ED25519_PRIVKEY_FORMAT, encryption_algorithm=ED25519_PEM_ENCRYPTION
+        ).decode("us-ascii")
 
     def generate_auth_token(self):
         """Generates a token of authenticity using the private key. This token can be verified using the public key.
         The token uses the format 'hextoken:hextoken-signature' where hextoken is a random 32 byte string and
         hextoken-signature is the signed counterpart."""
         token_nonce = secrets.token_hex(32)
-        signed_token = self._privkey.sign(token_nonce.encode('us-ascii'))
-        response = token_nonce + ":" + base64.b64encode(signed_token).decode('us-ascii')
+        signed_token = self._privkey.sign(token_nonce.encode("us-ascii"))
+        response = token_nonce + ":" + base64.b64encode(signed_token).decode("us-ascii")
         return response
 
     def verify_authenticity_token(self, token):
@@ -73,7 +77,7 @@ class ED25519:
         except ValueError:  # Bad token format or invalid base64 signature, FAILURE.
             return False
         try:
-            self._pubkey.verify(signature, hex_bit.encode('us-ascii'))
+            self._pubkey.verify(signature, hex_bit.encode("us-ascii"))
             return True
         except cryptography.exceptions.InvalidSignature as e:
             return False
