@@ -5,3 +5,4 @@ ezt
 python-ldap
 requests
 easydict
+pyyaml
