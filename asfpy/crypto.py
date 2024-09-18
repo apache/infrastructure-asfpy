@@ -79,5 +79,5 @@ class ED25519:
         try:
             self._pubkey.verify(signature, hex_bit.encode("us-ascii"))
             return True
-        except cryptography.exceptions.InvalidSignature as e:
+        except cryptography.exceptions.InvalidSignature:
             return False
