@@ -41,9 +41,11 @@ class ED25519:
             self._privkey = cryptography.hazmat.primitives.serialization.load_pem_private_key(
                 privkey.encode("us-ascii"), password=None
             )
-            self._pubkey = None
         else:
             self._privkey = cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PrivateKey.generate()
+
+        # Private keys can be used to generate as many public keys as needed, so we can create one for testing.
+        if self._privkey:
             self._pubkey = self._privkey.public_key()
 
     @property
