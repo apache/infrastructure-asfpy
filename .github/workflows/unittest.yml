@@ -24,6 +24,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
+        sudo apt-get install -y libldap2-dev libsasl2-dev ldap-utils
         python -m pip install poetry
         poetry install --with dev,ldap,aioldap
     - name: Test with pytest

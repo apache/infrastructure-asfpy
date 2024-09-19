@@ -31,4 +31,4 @@ jobs:
         poetry install --with dev,ldap,aioldap
     - name: Test with pylint
       run: |
-        pylint asfpy/*.py setup.py
+        poetry run pylint asfpy/*.py setup.py
