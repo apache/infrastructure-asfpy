@@ -30,11 +30,21 @@
 #
 
 import logging
+import platform
 
 import ezt
 import asyncinotify
 
 LOGGER = logging.getLogger(__name__)
+
+# Parse a release string such as "6.6.41-03520-gd3d77f15f842" into
+# a 3-element list for comparison.
+RELEASE = [ int(v) for v in platform.release().split('-', 1)[0].split('.') ]
+
+# IN_MASK_CREATE introduced in Linux 4.18
+WATCH_MASK = asyncinotify.Mask.MODIFY
+if RELEASE >= [4, 18, 0]:
+    WATCH_MASK |= asyncinotify.Mask.MASK_CREATE
 
 
 class TemplateWatcher:
@@ -61,9 +71,8 @@ class TemplateWatcher:
         # Use str(path) in case PATH is a pathlib.Path instance.
         self.templates[str(path)] = (t, bf)
 
-        self.inotify.add_watch(path,
-                               asyncinotify.Mask.MODIFY
-                               | asyncinotify.Mask.MASK_CREATE)
+        self.inotify.add_watch(path, WATCH_MASK)
+
         return t
 
     async def watch_forever(self):
