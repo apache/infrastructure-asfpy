@@ -65,17 +65,20 @@ class TemplateWatcher:
 
         return t
 
-    async def watch_forever(self):
-        async for changes in watchfiles.awatch(*self.files):
-            for event in changes:
-                if event[0] == watchfiles.Change.modified or event[0] == watchfiles.Change.added:
-                    path = str(event[1])
-                    LOGGER.info(f'Template changed: {path}')
-                    #print(event)
+    @staticmethod
+    def watch_filter(change: watchfiles.Change, path: str) -> bool:
+        return change == (watchfiles.Change.added or watchfiles.Change.modified)
 
-                    # Reparse the file.
-                    t, bf = self.templates[path]
-                    t.parse_file(path, bf)
+    async def watch_forever(self):
+        async for changes in watchfiles.awatch(*self.files, watch_filter=self.watch_filter):
+            for event in changes:
+                path = str(event[1])
+                LOGGER.info(f'Template changed: {path}')
+                #print(event)
+
+                # Reparse the file.
+                t, bf = self.templates[path]
+                t.parse_file(path, bf)
 
 
 def test_watcher(fnames):
