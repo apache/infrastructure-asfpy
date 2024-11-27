@@ -1,7 +1,0 @@
-aiohttp
-bonsai
-ezt
-python-ldap
-requests
-easydict
-watchfiles
