@@ -30,21 +30,11 @@
 #
 
 import logging
-import platform
 
 import ezt
-import asyncinotify
+import watchfiles
 
 LOGGER = logging.getLogger(__name__)
-
-# Parse a release string such as "6.6.41-03520-gd3d77f15f842" into
-# a 3-element list for comparison.
-RELEASE = [ int(v) for v in platform.release().split('-', 1)[0].split('.') ]
-
-# IN_MASK_CREATE introduced in Linux 4.18
-WATCH_MASK = asyncinotify.Mask.MODIFY
-if RELEASE >= [4, 18, 0]:
-    WATCH_MASK |= asyncinotify.Mask.MASK_CREATE
 
 
 class TemplateWatcher:
@@ -53,7 +43,7 @@ class TemplateWatcher:
         # PATH : (ezt.Template, BASE_FORMAT)
         self.templates = { }
 
-        self.inotify = asyncinotify.Inotify()
+        self.files = set()
 
     def load_template(self, path, **kwargs):
         """Load template at PATH with **KWARGS.
@@ -71,14 +61,18 @@ class TemplateWatcher:
         # Use str(path) in case PATH is a pathlib.Path instance.
         self.templates[str(path)] = (t, bf)
 
-        self.inotify.add_watch(path, WATCH_MASK)
+        self.files.add(path)
 
         return t
 
+    @staticmethod
+    def watch_filter(change: watchfiles.Change, path: str) -> bool:
+        return change == (watchfiles.Change.added or watchfiles.Change.modified)
+
     async def watch_forever(self):
-        with self.inotify:
-            async for event in self.inotify:
-                path = str(event.path)
+        async for changes in watchfiles.awatch(*self.files, watch_filter=self.watch_filter):
+            for event in changes:
+                path = str(event[1])
                 LOGGER.info(f'Template changed: {path}')
                 #print(event)
 
