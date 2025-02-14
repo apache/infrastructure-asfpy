@@ -67,7 +67,7 @@ class TemplateWatcher:
 
     @staticmethod
     def watch_filter(change: watchfiles.Change, path: str) -> bool:
-        return change == (watchfiles.Change.added or watchfiles.Change.modified)
+        return change in {watchfiles.Change.added, watchfiles.Change.modified}
 
     async def watch_forever(self):
         async for changes in watchfiles.awatch(*self.files, watch_filter=self.watch_filter):
