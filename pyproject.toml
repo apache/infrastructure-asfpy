@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "asfpy"
-version = "0.53"
+version = "0.55"
 description='ASF Common Python Methods'
 authors = ["ASF Infrastructure <users@infra.apache.org>"]
 readme = "README.md"
