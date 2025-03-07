@@ -31,4 +31,4 @@ jobs:
         poetry install --with dev --all-extras
     - name: Test with pylint
       run: |
-        poetry run pylint asfpy/*.py setup.py
+        poetry run pylint asfpy/*.py
