@@ -21,7 +21,7 @@ pyyaml = "^6.0.2"
 cryptography = "^43.0.1"
 cffi = "^1.17.1"
 watchfiles = "^1.0.0"
-
+crypt-r = { version = "^3.13.1", python = ">=3.11" }
 
 [build-system]
 requires = ["poetry-core"]
