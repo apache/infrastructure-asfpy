@@ -26,9 +26,13 @@ assert sys.version_info >= (3, 2)
 import ldap
 import ldap.modlist
 import re
-import crypt
 import random
 import string
+
+if sys.version_info < (3, 11):
+    import crypt
+else:
+    import crypt_r as crypt
 
 LDAP_SANDBOX = "ldaps://ldap-sandbox.apache.org:636"
 LDAP_MASTER = "ldaps://ldap-us.apache.org:636"
@@ -363,7 +367,7 @@ class manager:
         password = ''.join(random.choice(string.ascii_letters + string.digits) for i in range(16))
         if forcePass:
             password = forcePass
-        password_crypted = crypt.crypt(password, crypt.mksalt(method=crypt.METHOD_MD5))
+        password_crypted = crypt.crypt(password, crypt.mksalt(method=crypt.METHOD_MD5))  # type: ignore
 
         ldiff = {
             'objectClass': ['person', 'top', 'posixAccount', 'organizationalPerson', 'inetOrgPerson', 'asf-committer', 'hostObject', 'ldapPublicKey'],
@@ -381,7 +385,7 @@ class manager:
             'host': 'home.apache.org',
         }
 
-         # givenName is optional; drop it if there is a single name
+        # givenName is optional; drop it if there is a single name
         if len(names) == 1:
             del ldiff['givenName']
 
