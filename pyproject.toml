@@ -10,7 +10,7 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.9,<4"
+python = ">=3.9.2,<4"
 aiohttp = "^3.10.5"
 bonsai = { version = "^1.5.3", optional = true }
 ezt = "^1.1"
@@ -18,7 +18,7 @@ python-ldap = { version = "^3.4.4", optional = true }
 requests = "^2.32.3"
 easydict = "^1.13"
 pyyaml = "^6.0.2"
-cryptography = "^43.0.1"
+cryptography = "^44.0.2"
 cffi = "^1.17.1"
 watchfiles = "^1.0.0"
 
