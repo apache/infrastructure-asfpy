@@ -12,16 +12,15 @@ classifiers = [
 [tool.poetry.dependencies]
 python = ">=3.9,<4"
 aiohttp = "^3.10.5"
-bonsai = "^1.5.3"
+bonsai = { version = "^1.5.3", optional = true }
 ezt = "^1.1"
-python-ldap = "^3.4.4"
+python-ldap = { version = "^3.4.4", optional = true }
 requests = "^2.32.3"
 easydict = "^1.13"
 pyyaml = "^6.0.2"
 cryptography = "^43.0.1"
 cffi = "^1.17.1"
 watchfiles = "^1.0.0"
-
 
 [build-system]
 requires = ["poetry-core"]
@@ -31,14 +30,10 @@ build-backend = "poetry.core.masonry.api"
 pytest = "*"
 pylint = "*"
 
-[tool.poetry.group.ldap]
-optional = true
+[tool.poetry.extras]
+ldap = ["python-ldap"]
+aioldap = ["bonsai"]
 
-[tool.poetry.group.ldap.dependencies]
-python-ldap = "*"
-
-[tool.poetry.group.aioldap]
-optional = true
-
-[tool.poetry.group.aioldap.dependencies]
-bonsai = "*"
+[tool.pytest.ini_options]
+testpaths  = ["test"]
+pythonpath = ["asfpy"]

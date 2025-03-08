@@ -17,8 +17,11 @@
 
 import pytest
 import asfpy.crypto
+import pathlib
 
 TESTMSG = "Hello, world!"
+TEST_ROOT = pathlib.Path(__file__).parent
+
 
 def test_ed25519_keypair():
     keypair = asfpy.crypto.ED25519()
@@ -32,8 +35,8 @@ def test_ed25519_keypair():
 
 
 def test_existing_keys():
-    public_pem = open("test/data/ed25519_pubkey.pem").read()
-    private_pem = open("test/data/ed25519_privkey.pem").read()
+    public_pem = open(TEST_ROOT / "data/ed25519_pubkey.pem").read()
+    private_pem = open(TEST_ROOT / "data/ed25519_privkey.pem").read()
     pubkeypair = asfpy.crypto.ED25519(pubkey=public_pem)
     privkeypair = asfpy.crypto.ED25519(privkey=private_pem)
     print(privkeypair._privkey.public_key())

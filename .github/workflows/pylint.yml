@@ -28,7 +28,7 @@ jobs:
         sudo apt-get install -y libldap2-dev libsasl2-dev ldap-utils
         python -m pip install --upgrade pip
         pip install poetry
-        poetry install --with dev,ldap,aioldap
+        poetry install --with dev --all-extras
     - name: Test with pylint
       run: |
-        poetry run pylint asfpy/*.py setup.py
+        poetry run pylint asfpy/*.py
