@@ -1,4 +1,9 @@
 # asfpy - ASF Infrastructure Common Library for Python functions
+<a href="https://pypi.org/project/asfpy"><img alt="PyPI" src="https://img.shields.io/pypi/v/asfpy.svg?color=blue&maxAge=600" /></a>
+<a href="https://pypi.org/project/asfpy"><img alt="PyPI - Python Versions" src="https://img.shields.io/pypi/pyversions/asfpy.svg?maxAge=600" /></a>
+<a href="https://github.com/apache/infrastructure-asfpy/actions/workflows/unittest.yml?query=branch%3Amain"><img alt="Unit Tests" src="https://github.com/apache/infrastructure-asfpy/actions/workflows/uni
+ttest.yml/badge.svg?branch=main" /></a>
+<a href="https://github.com/apache/infrastructure-asfpy/blob/main/LICENSE"><img alt="Apache License" src="https://img.shields.io/github/license/apache/infrastructure-asfpy" /></a>
 
 This Python library contains features commonly used at the Apache Software Foundation.
 
