@@ -12,7 +12,12 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [3.8]
+        python-version:
+          - '3.9'
+          - '3.10'
+          - '3.11'
+          - '3.12'
+          - '3.13'
 
     steps:
     - uses: actions/checkout@master
@@ -26,7 +31,7 @@ jobs:
       run: |
         sudo apt-get install -y libldap2-dev libsasl2-dev ldap-utils
         python -m pip install poetry
-        poetry install --with dev,ldap,aioldap
+        poetry install --with dev --all-extras
     - name: Test with pytest
       run: |
-        poetry run python -m pytest test/test_*.py
+        poetry run pytest
