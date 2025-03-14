@@ -11,13 +11,21 @@ This Python library contains features commonly used at the Apache Software Found
 
 ## Building asfpy package
 
-Preparation
+Prerequisites:
 
-* `apt install python3.10-venv`
-* `pip3 install build twine`
+- `poetry`: install e.g. with pipx `pipx install poetry`
 
-Bump the version number in `setup.py` and run:
-`python3 -m build`
+Building the package:
+
+```console
+$ poetry build
+```
+
+Running the tests:
+
+```console
+$ poetry run pytest
+```
 
 ## Installation
 
