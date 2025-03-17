@@ -1,5 +1,7 @@
 .PHONY: build check publish publish-test
 
+SHELL := /bin/bash
+
 PYTHON ?= $(which python3)
 SCRIPTS ?= scripts/poetry
 
@@ -18,6 +20,13 @@ check:
 
 publish: check build
 	$(eval VERSION=$(shell poetry version -s))
+
+	@echo "Releasing version ${VERSION}"
+
+	@if [[ "$(VERSION)" =~ "dev" ]]; then \
+		echo "Detected development version, abort publishing"; \
+		exit 1; \
+	fi
 
 	@poetry publish && echo "\nPublished version $(VERSION) to pypi.org, do not forget to tag the repo with v$(VERSION)."
 
