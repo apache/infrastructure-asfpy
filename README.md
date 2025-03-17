@@ -11,40 +11,78 @@ This Python library contains features commonly used at the Apache Software Found
 
 ## Building asfpy package
 
-Preparation
+Prerequisites:
 
-* `apt install python3.10-venv`
-* `pip3 install build twine`
+- `poetry`: install e.g. with pipx `pipx install poetry`
 
-Bump the version number in `setup.py` and run:
-`python3 -m build`
+Building the package:
 
+```console
+$ poetry build
+```
+
+Running the tests:
+
+```console
+$ poetry run pytest
+```
+
+## Installation
+
+Create and activate a virtual environment and then install `asfpy` using [pip](https://pip.pypa.io):
+
+```console
+$ pip install "asfpy"
+```
+
+Note: Adding `[ldap]` or `[aioldap]` extras will install optional dependencies for LDAP support that will 
+require additional [system dependencies](https://github.com/noirello/bonsai?tab=readme-ov-file#requirements-for-building):
+
+```console
+$ pip install "asfpy[aioldap]"
+```
 
 ## Publishing a new asfpy package
 
-After building the asfpy package, run the following command, where $version is the new version to publish:
+Create an account on https://pypi.org/, then add a token with an "all projects" scope.
 
-`python3 -m twine upload dist/asfpy-$version*`  (for instance `dist/asfpy-0.38*`)
+Configure your credentials for the `pypi` repository:
 
-The above command will upload the `.whl` and the `.tar.gz` (the glob-asterisk is important!)
+```console
+$ poetry config pypi-token.pypi <your-token>
+```
+
+Finally publish to `pypi.org`:
+
+```console
+$ make publish
+```
 
 See [this guide](https://realpython.com/pypi-publish-python-package/#publish-your-package-to-pypi) for more details on working with PyPi.
 
 Please also create a tag for the release.
 
-### for testing
+### Publishing to test.pypi.org
 
 Create an account on https://test.pypi.org/, then add a token with an
-"all projects" scope. Place that into your `.pypirc` like so:
+"all projects" scope.
 
-```
-[testpypi]
-  repository = https://test.pypi.org/legacy/
-  username = __token__
-  password = pypi-tokenstringgoeshere
+Add a `testpypi` repository to your poetry config:
+
+```console
+$ poetry config repositories.testpypi https://test.pypi.org/legacy/
 ```
 
-Then you can test an upload with:
-`python3 -m twine upload -r testpypi dist/asf-py$version*`
+Configure your credentials for the `testpypi` repository:
+
+```console
+$ poetry config pypi-token.testpypi <your-token>
+```
+
+Finally publish to `test.pypi.org`:
+
+```console
+$ make publish-test
+```
 
 The package should upload to the test.pypi.org service.
