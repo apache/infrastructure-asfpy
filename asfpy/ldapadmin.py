@@ -26,7 +26,8 @@ assert sys.version_info >= (3, 2)
 import ldap
 import ldap.modlist
 import re
-import crypt
+# Due to be removed; suppress warnings to ensure other problems are more obvious
+import crypt # pylint: disable=deprecated-module,import-error
 import random
 import string
 
