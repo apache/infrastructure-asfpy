@@ -34,6 +34,6 @@ jobs:
         poetry run pylint asfpy/*.py
     - name: Test with MyPy
       run: |
-        pip install pylint
+        pip install mypy
         mypy --cache-dir /tmp/ --install-types
         mypy --cache-dir /tmp/ --ignore-missing-imports .
