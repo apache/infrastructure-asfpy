@@ -35,5 +35,6 @@ jobs:
     - name: Test with MyPy
       run: |
         pip install mypy
+        pip install types-PyYAML
         mypy --cache-dir /tmp/ --install-types
         mypy --cache-dir /tmp/ --ignore-missing-imports .
