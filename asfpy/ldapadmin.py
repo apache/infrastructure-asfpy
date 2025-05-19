@@ -26,8 +26,7 @@ assert sys.version_info >= (3, 2)
 import ldap
 import ldap.modlist
 import re
-# Due to be removed; suppress warnings to ensure other problems are more obvious
-import crypt # pylint: disable=deprecated-module,import-error
+import passlib
 import random
 import string
 
@@ -364,7 +363,7 @@ class manager:
         password = ''.join(random.choice(string.ascii_letters + string.digits) for i in range(16))
         if forcePass:
             password = forcePass
-        password_crypted = crypt.crypt(password, crypt.mksalt(method=crypt.METHOD_MD5))
+        password_crypted = passlib.hash.md5_crypt.hash(password)
 
         ldiff = {
             'objectClass': ['person', 'top', 'posixAccount', 'organizationalPerson', 'inetOrgPerson', 'asf-committer', 'hostObject', 'ldapPublicKey'],
