@@ -26,9 +26,8 @@ assert sys.version_info >= (3, 2)
 import ldap
 import ldap.modlist
 import re
-# Due to be removed; suppress warnings to ensure other problems are more obvious
-import crypt # pylint: disable=deprecated-module,import-error
-import random
+import passlib.hash
+import secrets
 import string
 
 LDAP_SANDBOX = "ldaps://ldap-sandbox.apache.org:636"
@@ -361,10 +360,12 @@ class manager:
             raise ValidatorException("Invalid email address supplied!", 'email')
 
         # Set password, b64-encoded crypt of random string
-        password = ''.join(random.choice(string.ascii_letters + string.digits) for i in range(16))
+        salt_alphabet = string.ascii_letters = string.digits
+        salt = ''.join(secrets.choice(salt_alphabet) for _ in range(6))
+        password = ''.join(secrets.choice(salt_alphabet) for _ in range(16))
         if forcePass:
             password = forcePass
-        password_crypted = crypt.crypt(password, crypt.mksalt(method=crypt.METHOD_MD5))
+        password_crypted = passlib.hash.md5_crypt.using(salt=salt).hash(password)
 
         ldiff = {
             'objectClass': ['person', 'top', 'posixAccount', 'organizationalPerson', 'inetOrgPerson', 'asf-committer', 'hostObject', 'ldapPublicKey'],

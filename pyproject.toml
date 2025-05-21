@@ -21,6 +21,7 @@ pyyaml = "^6.0.2"
 cryptography = "^44.0.2"
 cffi = "^1.17.1"
 watchfiles = "^1.0.0"
+passlib = { version = "^1.7.4", optional = true }
 
 [build-system]
 requires = ["poetry-core"]
@@ -31,8 +32,8 @@ pytest = "*"
 pylint = "*"
 
 [tool.poetry.extras]
-ldap = ["python-ldap"]
-aioldap = ["bonsai"]
+ldap = ["python-ldap", "passlib"]
+aioldap = ["bonsai", "passlib"]
 
 [tool.pytest.ini_options]
 testpaths  = ["test"]
