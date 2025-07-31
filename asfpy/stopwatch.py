@@ -7,11 +7,11 @@ import functools
 class Stopwatch:
     def __init__(self, name=None):
         self.name = name
-        self.start_time = time.time()
         # Initialize logger in constructor; default to root logger
         frame = inspect.currentframe().f_back
         module = inspect.getmodule(frame)
         self.logger = getattr(module, '_LOGGER', logging.getLogger())
+        self.start_time = time.time()  # set this, at exit time from function
 
     def format(self, duration_ms=None):
         duration_ms = duration_ms or self.elapsed_ms()
