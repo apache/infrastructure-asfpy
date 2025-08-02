@@ -139,7 +139,7 @@ class committer:
         self.manager.lc.modify_s(dn, [(ldap.MOD_ADD, 'memberUid', self.uid.encode('ascii'))])
 
     def add_role(self, role):
-        """ Add person to basic posixGroup entry """
+        """ Add person to role group """
         dn = LDAP_CN % (role, LDAP_ROLES_BASE)
         self.manager.lc.modify_s(dn, [(ldap.MOD_ADD, 'member', self.dn_enc)])
 
@@ -159,7 +159,7 @@ class committer:
         self.manager.lc.modify_s(dn, [(ldap.MOD_DELETE, 'memberUid', self.uid.encode('ascii'))])
 
     def remove_role(self, role):
-        """ Add person to basic posixGroup entry """
+        """ Remove person from role group """
         dn = LDAP_CN % (role, LDAP_ROLES_BASE)
         self.manager.lc.modify_s(dn, [(ldap.MOD_DELETE, 'member', self.dn_enc)])
 
