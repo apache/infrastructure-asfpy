@@ -1,6 +1,6 @@
 import time
 import asyncio
-from stopwatch import Stopwatch
+from asfpy.stopwatch import Stopwatch
 
 # Configure logging to see output
 import logging
