@@ -39,7 +39,7 @@ def test_existing_keys():
     private_pem = open(TEST_ROOT / "data/ed25519_privkey.pem").read()
     pubkeypair = asfpy.crypto.ED25519(pubkey=public_pem)
     privkeypair = asfpy.crypto.ED25519(privkey=private_pem)
-    print(privkeypair._privkey.public_key())
+    print(privkeypair._privkey.public_key()) # pylint: disable=protected-access
 
     # Test readability of private test key
     assert privkeypair.privkey is not None, "Private key is empty when it shouldn't be!"
