@@ -8,6 +8,21 @@ This Python library contains features commonly used at the Apache Software Found
 
 (For asfpy 0.37 and below, look at our old [Subversion repository](https://svn.apache.org/repos/infra/infrastructure/trunk/projects/asfpy/))
 
+## Package Documention
+- `aioldap`: asynchronous LDAP client (_documentation TBD_)
+- `clitools`: LDAP work via command line tooling (_documentation TBD_)
+- `crypto`: helper for ED25519 work (_documentation TBD_)
+- `daemon`: **DEPRECATED** old code to spawn a daemon (_documentation TBD_)
+- `db`: high performance simplified SQLite client (_documentation TBD_)
+- `justone`: helper to ensure only one long-running process is operating (_documentation TBD_)
+- `ldapadmin`: **DEPRECATED** internal ASF infra tooling (_documentation TBD_)
+- `messaging`: helpers to send email (_documentation TBD_)
+- `pubsub`: client for subscribing to the ASF pubsub service (_documentation TBD_)
+- `sqlite`: document-based CRUD using SQLite (_documentation TBD_)
+- `stopwatch`: debug/logging timing for Python code. See [documentation](stopwatch.md)
+- `syslog`: redirect `print()` to syslog (_documentation TBD_)
+- `twatcher`: watch EZT emplates for edits, then reload (_documentation TBD_)
+- `whoami`: fetch hostname of box (_documentation TBD_)
 
 ## Building asfpy package
 
