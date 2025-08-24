@@ -30,6 +30,7 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry.group.dev.dependencies]
 pytest = "*"
 pylint = "*"
+mypy = "*"
 
 [tool.poetry.extras]
 ldap = ["python-ldap", "passlib"]

@@ -32,3 +32,8 @@ jobs:
     - name: Test with pylint
       run: |
         poetry run pylint asfpy/*.py test/*.py
+    - name: Test with mypy
+      if: always()
+      run: |
+        poetry run python -m pip install types-PyYAML types-requests
+        poetry run mypy --ignore-missing-imports . # recursive by default
