@@ -30,7 +30,7 @@ def my_function():
 
 **Example**:
 ```python
-from stopwatch import Stopwatch
+from asfpy.stopwatch import Stopwatch
 
 @Stopwatch(name="Slow Sync Task")
 def slow_sync_function():
@@ -65,7 +65,7 @@ with Stopwatch(name="Optional Block Name"):
 
 **Example**:
 ```python
-from stopwatch import Stopwatch
+from asfpy.stopwatch import Stopwatch
 
 def main():
     with Stopwatch(name="Main Block"):
@@ -96,7 +96,7 @@ print(stopwatch.elapsed_ms())  # Get new elapsed time
 
 **Example**:
 ```python
-from stopwatch import Stopwatch
+from asfpy.stopwatch import Stopwatch
 import time
 
 stopwatch = Stopwatch(name="Instance Reset Test")
@@ -118,7 +118,7 @@ print(f"Second check after reset: {stopwatch.elapsed_ms():.2f} ms")  # ~200 ms
 
 **Example (Incorrect)**:
 ```python
-from stopwatch import Stopwatch
+from asfpy.stopwatch import Stopwatch
 import time
 
 stopwatch = Stopwatch(name="Anti-pattern Test")
