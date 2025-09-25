@@ -33,6 +33,7 @@ publish: check build
 	@echo "Published version $(VERSION) to pypi.org, do not forget to tag the repo with v$(VERSION)."
 	@echo "$ git tag v${VERSION}"
 	@echo "$ git push origin v${VERSION}"
+	@echo "Also: bump the version in pyproject.toml"
 
 publish-test: build
 	$(eval REPO=$(shell poetry config repositories.testpypi | grep -o 'test.pypi.org'))
