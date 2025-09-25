@@ -46,6 +46,25 @@ Running the tests:
 $ poetry run pytest
 ```
 
+**Note**: the above run might use system/local package install. Configure the poetry virtual
+environment with:
+```console
+$ poetry install
+```
+
+Poetry might want to use a keyring. To disable that (and stick to a token in your poetry config),
+then use the following:
+```console
+$ poetry config keyring.enabled false
+```
+
+Then to override the default `asfpy` install, and test the wheel that was built (eg. before
+pushing the wheel to PyPI):
+```console
+$ poetry run pip install ./dist/asfpy-0.56-py3-none-any.whl
+```
+Running pytest will now use the built wheel.
+
 ## Installation
 
 Create and activate a virtual environment and then install `asfpy` using [pip](https://pip.pypa.io):
