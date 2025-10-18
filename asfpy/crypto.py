@@ -15,13 +15,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Auxiliary crypto features. Just ED25519 signing for now."""
+
+import hmac
+import hashlib
+import base64
 import binascii
+import secrets
 
 import cryptography.exceptions
 import cryptography.hazmat.primitives.asymmetric.ed25519
 import cryptography.hazmat.primitives.serialization
-import secrets
-import base64
+
 
 # Defaults PEM format for our ED25519 keys
 ED25519_ENCODING = cryptography.hazmat.primitives.serialization.Encoding.PEM
@@ -103,3 +107,27 @@ class ED25519:
             return data_verified
         except cryptography.exceptions.InvalidSignature:
             return
+
+
+class Signer:
+    """Signer for messages of a specific purpose, using HMAC-SHA256."""
+
+    def __init__(self, prefix: str, key: bytes):
+        self.prefix = prefix  # Purpose, e.g., 'delete-issue' or 'add-issue'
+        self.key = key  # Secret key, e.g., app.config['SECRET_KEY'].encode()
+
+    def sign(self, *args: str) -> str:
+        """Return a URL-safe HMAC-SHA256 signature for the given args."""
+        args = [str(arg).replace(':', '') for arg in args]
+        message = f"{self.prefix}:{':'.join(args)}".encode('ascii')
+        digest = hmac.new(self.key, message, hashlib.sha256).digest()
+        return base64.urlsafe_b64encode(digest).decode('ascii').rstrip('=')
+
+    def verify(self, *args: str, given: str) -> bool:
+        """Verify a given HMAC signature is correct."""
+        try:
+            given_bytes = base64.urlsafe_b64decode(given + '=' * (4 - len(given) % 4))
+            expected = self.sign(*args).encode('ascii')
+            return hmac.compare_digest(expected, given_bytes)
+        except (base64.binascii.Error, ValueError):
+            return False
