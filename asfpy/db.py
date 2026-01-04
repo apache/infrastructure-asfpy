@@ -49,14 +49,16 @@ class DB:
     purpose, instead of mixing them throughout a codebase.
     """
 
-    def __init__(self, fname, yaml_fname=None, yaml_section='queries'):
+    def __init__(self, fname, /,
+                 yaml_fname=None, yaml_section='queries',
+                 isolation_level=None):
 
         def row_factory(cursor, row):
             "Return an EasyDict of the row, for attribute access."
             return easydict.EasyDict(sqlite3.Row(cursor, row))
 
-        # Note: isolation_level=None means autocommit mode.
-        self.conn = sqlite3.connect(fname, isolation_level=None)
+        # Note: default isolation_level=None means autocommit mode.
+        self.conn = sqlite3.connect(fname, isolation_level=isolation_level)
         self.conn.row_factory = row_factory
 
         # If a YAML file containing SQL queries is presented, then create

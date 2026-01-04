@@ -28,7 +28,12 @@ publish: check build
 		exit 1; \
 	fi
 
-	@poetry publish && echo "\nPublished version $(VERSION) to pypi.org, do not forget to tag the repo with v$(VERSION)."
+	@poetry publish || exit 1
+	@echo ""
+	@echo "Published version $(VERSION) to pypi.org, do not forget to tag the repo with v$(VERSION)."
+	@echo "$ git tag v${VERSION}"
+	@echo "$ git push origin v${VERSION}"
+	@echo "Also: bump the version in pyproject.toml"
 
 publish-test: build
 	$(eval REPO=$(shell poetry config repositories.testpypi | grep -o 'test.pypi.org'))
