@@ -31,7 +31,8 @@ class AsfpyDBError(Exception):
 
 
 class DB:
-    def __init__(self, fp: str, isolation_level: typing.Optional[str] = DEFAULT_ISOLATION_LEVEL):
+    def __init__(self, fp: str,
+            isolation_level: typing.Optional[typing.Literal['DEFERRED', 'EXCLUSIVE', 'IMMEDIATE']] = DEFAULT_ISOLATION_LEVEL):
         self.connector = sqlite3.connect(fp, isolation_level=isolation_level)
         self.connector.row_factory = sqlite3.Row
         self.cursor = self.connector.cursor()
