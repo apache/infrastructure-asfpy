@@ -24,6 +24,9 @@ print("Hello, world!") # prints to syslog
 
 print = asfpy.syslog.Printer(stdout=True)
 print("Hello!!") # print to syslog AND stdout
+
+print = asfpy.syslog.Printer(stderr=True)
+print("Hello!!") # print to syslog AND stderr
 """
 import syslog
 import os
@@ -32,6 +35,7 @@ import sys
 class Printer:
     def __init__(self, **kwargs):
         self.copy_to_stdout = kwargs.get('stdout')
+        self.copy_to_stderr = kwargs.get('stderr')
         log_options = 0
         log_ident = kwargs.get('identity', os.path.basename(sys.argv[0]))
         facility = syslog.LOG_USER
@@ -44,4 +48,6 @@ class Printer:
         syslog.syslog(line)
         if self.copy_to_stdout:
             print(*args)
+        if self.copy_to_stderr:
+            print(*args, file=sys.stderr)
 
