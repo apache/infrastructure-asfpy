@@ -26,6 +26,7 @@ import cryptography.exceptions
 import cryptography.hazmat.primitives.asymmetric.ed25519
 import cryptography.hazmat.primitives.serialization
 
+from typing import Optional
 
 # Defaults PEM format for our ED25519 keys
 ED25519_ENCODING = cryptography.hazmat.primitives.serialization.Encoding.PEM
@@ -35,7 +36,7 @@ ED25519_PEM_ENCRYPTION = cryptography.hazmat.primitives.serialization.NoEncrypti
 
 
 class ED25519:
-    def __init__(self, pubkey: str = None, privkey: str = None):
+    def __init__(self, pubkey: Optional[str] = None, privkey: Optional[str] = None):
         """Loads an existing ED25519 key or instantiates a new ED25519 key pair.
         If pubkey is set, it loads it as a PEM-formatted key, same with privkey.
         If no public or private key is passed on, a new keypair is created instead."""
@@ -82,6 +83,7 @@ class ED25519:
         """
         nonce = secrets.token_hex(32)
         data_plus_nonce = "\n".join([nonce, data])
+        assert self._privkey, "No public key found, cannot sign!" # satisfy mypy
         data_signature = self._privkey.sign(data_plus_nonce.encode("us-ascii"))
         response = "\n".join([base64.b64encode(data_signature).decode("us-ascii"), nonce, data])
         if output_b64:
@@ -97,8 +99,8 @@ class ED25519:
                     data = base64.b64decode(data).decode('us-ascii')
                 except binascii.Error:  # Not base64!
                     return None
-            signature, data_plus_nonce = data.split("\n", 1)
-            signature = base64.b64decode(signature)
+            signaturestr, data_plus_nonce = data.split("\n", 1)
+            signature = base64.b64decode(signaturestr)
         except ValueError:  # Bad token format or invalid base64 signature, FAILURE.
             return
         try:
@@ -116,9 +118,9 @@ class Signer:
         self.prefix = prefix  # Purpose, e.g., 'delete-issue' or 'add-issue'
         self.key = key  # Secret key, e.g., app.config['SECRET_KEY'].encode()
 
-    def sign(self, *args: str) -> str:
+    def sign(self, *argv: str) -> str:
         """Return a URL-safe HMAC-SHA256 signature for the given args."""
-        args = [str(arg).replace(':', '') for arg in args]
+        args = [str(arg).replace(':', '') for arg in argv]
         message = f"{self.prefix}:{':'.join(args)}".encode('ascii')
         digest = hmac.new(self.key, message, hashlib.sha256).digest()
         return base64.urlsafe_b64encode(digest).decode('ascii').rstrip('=')
@@ -129,5 +131,5 @@ class Signer:
             given_bytes = base64.urlsafe_b64decode(given + '=' * (4 - len(given) % 4))
             expected = self.sign(*args).encode('ascii')
             return hmac.compare_digest(expected, given_bytes)
-        except (base64.binascii.Error, ValueError):
+        except (base64.binascii.Error, ValueError): # type: ignore[attr-defined]
             return False
