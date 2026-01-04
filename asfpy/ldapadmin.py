@@ -360,7 +360,7 @@ class manager:
             raise ValidatorException("Invalid email address supplied!", 'email')
 
         # Set password, b64-encoded crypt of random string
-        salt_alphabet = string.ascii_letters = string.digits
+        salt_alphabet = string.ascii_letters + string.digits
         salt = ''.join(secrets.choice(salt_alphabet) for _ in range(6))
         password = ''.join(secrets.choice(salt_alphabet) for _ in range(16))
         if forcePass:
