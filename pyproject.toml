@@ -18,7 +18,7 @@ python-ldap = { version = "^3.4.4", optional = true }
 requests = "^2.32.3"
 easydict = "^1.13"
 pyyaml = "^6.0.2"
-cryptography = "^44.0.2"
+cryptography = "^46.0.5"
 cffi = "^1.17.1"
 watchfiles = "^1.0.0"
 passlib = { version = "^1.7.4", optional = true }
