@@ -32,38 +32,25 @@ This Python library contains features commonly used at the Apache Software Found
 
 Prerequisites:
 
-- `poetry`: install e.g. with pipx `pipx install poetry`
+- `uv`: install as per https://docs.astral.sh/uv/getting-started/installation/
+
+Setting up the development environment:
+
+```console
+$ uv sync --all-extras
+```
 
 Building the package:
 
 ```console
-$ poetry build
+$ uv build
 ```
 
 Running the tests:
 
 ```console
-$ poetry run pytest
+$ uv run pytest
 ```
-
-**Note**: the above run might use system/local package install. Configure the poetry virtual
-environment with:
-```console
-$ poetry install
-```
-
-Poetry might want to use a keyring. To disable that (and stick to a token in your poetry config),
-then use the following:
-```console
-$ poetry config keyring.enabled false
-```
-
-Then to override the default `asfpy` install, and test the wheel that was built (eg. before
-pushing the wheel to PyPI):
-```console
-$ poetry run pip install ./dist/asfpy-0.56-py3-none-any.whl
-```
-Running pytest will now use the built wheel.
 
 ## Installation
 
@@ -84,10 +71,10 @@ $ pip install "asfpy[aioldap]"
 
 Create an account on https://pypi.org/, then add a token with an "all projects" scope.
 
-Configure your credentials for the `pypi` repository:
+Set your token via the environment:
 
 ```console
-$ poetry config pypi-token.pypi <your-token>
+$ export UV_PUBLISH_TOKEN=<your-token>
 ```
 
 Finally publish to `pypi.org`:
@@ -105,16 +92,10 @@ Please also create a tag for the release.
 Create an account on https://test.pypi.org/, then add a token with an
 "all projects" scope.
 
-Add a `testpypi` repository to your poetry config:
+Set your token via the environment:
 
 ```console
-$ poetry config repositories.testpypi https://test.pypi.org/legacy/
-```
-
-Configure your credentials for the `testpypi` repository:
-
-```console
-$ poetry config pypi-token.testpypi <your-token>
+$ export UV_PUBLISH_TOKEN=<your-token>
 ```
 
 Finally publish to `test.pypi.org`:

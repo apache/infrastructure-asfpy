@@ -1,40 +1,39 @@
-[tool.poetry]
+[project]
 name = "asfpy"
 version = "0.58"
-description='ASF Common Python Methods'
-authors = ["ASF Infrastructure <users@infra.apache.org>"]
+description = "ASF Common Python Methods"
+authors = [{name = "ASF Infrastructure", email = "users@infra.apache.org"}]
 readme = "README.md"
+requires-python = ">=3.9.2"
 classifiers = [
     "License :: OSI Approved :: Apache Software License",
-    "Programming Language :: Python :: 3"
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+    "aiohttp>=3.10.5,<4",
+    "cffi>=1.17.1",
+    "cryptography>=46.0.5,<47",
+    "easydict>=1.13,<2",
+    "ezt>=1.1,<2",
+    "pyyaml>=6.0.2,<7",
+    "requests>=2.32.3,<3",
+    "watchfiles>=1.0.0,<2",
 ]
 
-[tool.poetry.dependencies]
-python = ">=3.9.2,<4"
-aiohttp = "^3.10.5"
-bonsai = { version = "^1.5.3", optional = true }
-ezt = "^1.1"
-python-ldap = { version = "^3.4.4", optional = true }
-requests = "^2.32.3"
-easydict = "^1.13"
-pyyaml = "^6.0.2"
-cryptography = "^46.0.5"
-cffi = "^1.17.1"
-watchfiles = "^1.0.0"
-passlib = { version = "^1.7.4", optional = true }
+[project.optional-dependencies]
+aioldap = ["bonsai>=1.5.3,<2", "passlib>=1.7.4,<2"]
+ldap = ["python-ldap>=3.4.4,<4", "passlib>=1.7.4,<2"]
+
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.poetry.group.dev.dependencies]
-pytest = "*"
-pylint = "*"
-mypy = "*"
+[dependency-groups]
+dev = ["mypy", "pylint", "pytest"]
 
-[tool.poetry.extras]
-ldap = ["python-ldap", "passlib"]
-aioldap = ["bonsai", "passlib"]
+[tool.hatch.build.targets.sdist]
+exclude = ["test/"]
 
 [tool.pytest.ini_options]
 testpaths  = ["test"]
