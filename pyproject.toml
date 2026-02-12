@@ -1,6 +1,6 @@
 [project]
 name = "asfpy"
-version = "0.58"
+version = "0.59"
 description = "ASF Common Python Methods"
 authors = [{name = "ASF Infrastructure", email = "users@infra.apache.org"}]
 readme = "README.md"
