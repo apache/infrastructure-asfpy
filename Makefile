@@ -2,24 +2,28 @@
 
 SHELL := /bin/bash
 
-PYTHON ?= $(which python3)
-SCRIPTS ?= scripts/poetry
-
 build:
 	@echo "Building module"
 	@echo "==============="
 
-	@poetry build
+	@uv build
 
 check:
 	@echo "Checking for a dirty workspace"
 	@echo "=============================="
 
-	@git status -s -uno | grep '.' && echo "Workspace contains uncommitted changes, aborting publishing" && exit 1
-	@git status -s -unormal | grep -E "asfpy|tests" | grep "?" && echo "Workspace contains untracked source files, aborting publishing" && exit 1
+	@if git status -s -uno | grep -q .; then \
+		echo "Workspace contains uncommitted changes, aborting publishing"; \
+		exit 1; \
+	fi
+	@if git status -s -unormal | grep -E "asfpy|tests" | grep -q "?"; then \
+		echo "Workspace contains untracked source files, aborting publishing"; \
+		exit 1; \
+	fi
+	@uv lock --locked
 
 publish: check build
-	$(eval VERSION=$(shell poetry version -s))
+	$(eval VERSION=$(shell uv version --short))
 
 	@echo "Releasing version ${VERSION}"
 
@@ -28,7 +32,7 @@ publish: check build
 		exit 1; \
 	fi
 
-	@poetry publish || exit 1
+	@uv publish || exit 1
 	@echo ""
 	@echo "Published version $(VERSION) to pypi.org, do not forget to tag the repo with v$(VERSION)."
 	@echo "$ git tag v${VERSION}"
@@ -36,14 +40,6 @@ publish: check build
 	@echo "Also: bump the version in pyproject.toml"
 
 publish-test: build
-	$(eval REPO=$(shell poetry config repositories.testpypi | grep -o 'test.pypi.org'))
-	@if [ "$(REPO)" != "test.pypi.org" ]; then \
-		echo "\nSetting up testpypi repository"; \
-		poetry config repositories.testpypi https://test.pypi.org/legacy/; \
-		echo "Dont forget to configure your token for test.pypi.org using:"; \
-		echo "  poetry config pypi-token.testpypi <your-token>\n"; \
-	fi
+	$(eval VERSION=$(shell uv version --short))
 
-	$(eval VERSION=$(shell poetry version -s))
-
-	@poetry publish -r testpypi && echo "\nPublished version $(VERSION) to test.pypi.org."
+	@uv publish --publish-url https://test.pypi.org/legacy/ && echo -e "\nPublished version $(VERSION) to test.pypi.org."

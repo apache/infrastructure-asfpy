@@ -9,7 +9,7 @@ import base64
 def ldapsearch_parse(indata: str):
     """Parses ldapsearch output into structured python data"""
     results = []
-    bunch = {}
+    bunch: dict[str, list] = {}
     for line in indata.splitlines(keepends=False):
         if not line:  # The end of a bunch always ends with a blank line.
             results.append(bunch)
