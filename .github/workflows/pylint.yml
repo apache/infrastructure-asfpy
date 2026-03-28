@@ -33,5 +33,5 @@ jobs:
     - name: Test with mypy
       if: always()
       run: |
-        uv run pip install types-PyYAML types-requests
+        uv pip install types-PyYAML types-requests
         uv run mypy --ignore-missing-imports . # recursive by default
