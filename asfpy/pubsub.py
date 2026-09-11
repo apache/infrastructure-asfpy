@@ -76,31 +76,42 @@ async def listen(pubsub_url, username=None, password=None, timeout=None, buffers
             LOGGER.debug('Opening new connection...')
             try:
                 async for payload in _process_connection(session, pubsub_url):
-                    if not payload:
-                        pass  ### tbd?: event loop killed or hit EOF
-
                     # We got a payload, so reset the DELAY.
                     delay = 0.0
 
                     yield payload
 
+                LOGGER.info(f'Connection closed, reconnecting in {delay} seconds')
+
             except (ConnectionRefusedError,
-                    aiohttp.ClientConnectorError,
-                    aiohttp.ServerTimeoutError,
+                    # ClientConnectionError covers the ways a connection can
+                    # break: the server hung up (ServerDisconnectedError), the
+                    # peer reset it (ClientOSError), we could not reach it
+                    # (ClientConnectorError), or it went quiet past the
+                    # inactivity timeout (ServerTimeoutError).
+                    aiohttp.ClientConnectionError,
+                    # The server answered, but not with a stream of payloads.
+                    aiohttp.ClientResponseError,
                     aiohttp.ClientPayloadError,
                     ) as e:
                 LOGGER.error(f'Connection failed ({type(e).__name__}: {e})'
                              f', reconnecting in {delay} seconds')
-                await asyncio.sleep(delay)
 
-                # Back off on the delay. Step it up from 0s, doubling each
-                # time, and top out at 30s retry. Steps: 0, 2, 6, 14, 30.
-                delay = min(30.0, (delay + 1.0) * 2)
+            # However this connection ended, wait before opening the next one.
+            await asyncio.sleep(delay)
+
+            # Back off on the delay. Step it up from 0s, doubling each
+            # time, and top out at 30s retry. Steps: 0, 2, 6, 14, 30.
+            delay = min(30.0, (delay + 1.0) * 2)
 
 
 async def _process_connection(session, pubsub_url):
-    # Connect to pubsub and listen for payloads.
+    # Connect to pubsub and listen for payloads. This generator ends when the
+    # connection does, leaving it to the caller to open the next one.
     async with session.get(pubsub_url) as conn:
+
+        # A non-200 has a body too, and it is not a stream of payloads.
+        conn.raise_for_status()
 
         #print('LIMITS:', conn.content.get_read_buffer_limits())
 
@@ -117,15 +128,25 @@ async def _process_connection(session, pubsub_url):
             # ignores it.
             try:
                 raw = await conn.content.readuntil(b'\n')
-            except ValueError as e:
+            except ValueError as e:  # TODO: 3.14 can throw aiohttp.http_exceptions.LineTooLong
                 LOGGER.error(f'Saw "{e}"; re-raising as ClientPayloadError to close/reconnect')
                 raise aiohttp.ClientPayloadError('re-raised from ValueError in readuntil()')
 
-            if not raw:
-                # We just hit EOF.
-                yield None
+            if not raw.endswith(b'\n'):
+                # At EOF, readuntil() returns what it has rather than raising:
+                # nothing, if the stream ended between payloads, or a partial
+                # payload, if the server went away part-way through writing one.
+                # Either way, there is nothing further to read here.
+                LOGGER.debug('Hit EOF; closing the connection.')
+                return
 
-            yield json.loads(raw)
+            try:
+                payload = json.loads(raw)
+            except ValueError as e:
+                LOGGER.error(f'Saw "{e}"; re-raising as ClientPayloadError to close/reconnect')
+                raise aiohttp.ClientPayloadError('re-raised from ValueError in json.loads()')
+
+            yield payload
 
 
 def test_listening():
