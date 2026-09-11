@@ -163,3 +163,63 @@ def test_reconnects_when_the_server_hangs_up_before_answering():
             await server.wait_closed()
 
     assert _run(run()) == [{'n': 1}]
+
+
+# The header the server reads, spelled out rather than taken from the module,
+# so that a test failure means the wire is wrong and not merely the name.
+CURSOR_HEADER = 'X-Fetch-Since-Cursor'
+
+
+def test_reconnect_asks_for_what_it_missed():
+    """A reconnect names the last payload seen, so the server can replay
+    whatever it published while nobody was listening."""
+    asked = []
+
+    async def handler(request):
+        asked.append(request.headers.get(CURSOR_HEADER))
+        if len(asked) == 1:
+            return await _stream_one_payload(request, {'n': 0, 'pubsub_cursor': 'first'})
+        # What the server replays for anyone resuming from 'first'.
+        return await _stream_one_payload(request, {'n': 1, 'pubsub_cursor': 'second'})
+
+    async def run():
+        runner, url = await _start_server(handler)
+        try:
+            return await _collect(url, 2)
+        finally:
+            await runner.cleanup()
+
+    payloads = _run(run())
+    assert [p['n'] for p in payloads] == [0, 1]
+    assert asked == [None, 'first']
+
+
+def test_a_keepalive_does_not_move_the_cursor():
+    """Keepalives carry no cursor; resuming from one would skip events."""
+    asked = []
+
+    async def handler(request):
+        asked.append(request.headers.get(CURSOR_HEADER))
+        resp = web.StreamResponse()
+        resp.enable_chunked_encoding()
+        await resp.prepare(request)
+        if len(asked) == 1:
+            await resp.write(json.dumps({'n': 0, 'pubsub_cursor': 'first'}).encode() + b'\n')
+            await resp.write(json.dumps({'stillalive': 1}).encode() + b'\n')
+        else:
+            await resp.write(json.dumps({'n': 1, 'pubsub_cursor': 'second'}).encode() + b'\n')
+        await resp.write_eof()
+        return resp
+
+    async def run():
+        runner, url = await _start_server(handler)
+        try:
+            return await _collect(url, 3)
+        finally:
+            await runner.cleanup()
+
+    payloads = _run(run())
+    assert payloads == [{'n': 0, 'pubsub_cursor': 'first'},
+                        {'stillalive': 1},
+                        {'n': 1, 'pubsub_cursor': 'second'}]
+    assert asked == [None, 'first']

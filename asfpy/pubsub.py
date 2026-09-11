@@ -48,6 +48,11 @@ DEFAULT_INACTIVITY_TIMEOUT = 11
 ### for debug:
 #DEFAULT_INACTIVITY_TIMEOUT = 4.5
 
+# Every payload carries a cursor, and the server will replay what it has
+# published since a given one. See PUBSUB_CURSOR_HEADER below.
+PUBSUB_CURSOR_KEY = 'pubsub_cursor'
+PUBSUB_CURSOR_HEADER = 'X-Fetch-Since-Cursor'
+
 # Default read buffer size. Max payload size in pypubsub is 256kb (plus metadata and JSON overhead)
 DEFAULT_READ_BUFFER_SIZE = 300 * 1024
 
@@ -68,6 +73,11 @@ async def listen(pubsub_url, username=None, password=None, timeout=None, buffers
 
     async with aiohttp.ClientSession(auth=auth, timeout=ct, read_bufsize=buffersize) as session:
 
+        # The cursor of the last payload seen, so that a reconnect can pick up
+        # where this one left off rather than silently skipping whatever was
+        # published in between.
+        cursor = None
+
         # Retry immediately, and then back it off.
         delay = 0.0
 
@@ -75,9 +85,13 @@ async def listen(pubsub_url, username=None, password=None, timeout=None, buffers
         while True:
             LOGGER.debug('Opening new connection...')
             try:
-                async for payload in _process_connection(session, pubsub_url):
+                async for payload in _process_connection(session, pubsub_url, cursor):
                     # We got a payload, so reset the DELAY.
                     delay = 0.0
+
+                    # Keepalives carry no cursor, and leave this one where it is.
+                    if isinstance(payload, dict):
+                        cursor = payload.get(PUBSUB_CURSOR_KEY, cursor)
 
                     yield payload
 
@@ -105,10 +119,15 @@ async def listen(pubsub_url, username=None, password=None, timeout=None, buffers
             delay = min(30.0, (delay + 1.0) * 2)
 
 
-async def _process_connection(session, pubsub_url):
+async def _process_connection(session, pubsub_url, cursor=None):
     # Connect to pubsub and listen for payloads. This generator ends when the
     # connection does, leaving it to the caller to open the next one.
-    async with session.get(pubsub_url) as conn:
+
+    # Asking to resume from a cursor the server no longer holds is not an
+    # error: it simply has nothing to replay, and the stream starts from now.
+    headers = {PUBSUB_CURSOR_HEADER: cursor} if cursor else None
+
+    async with session.get(pubsub_url, headers=headers) as conn:
 
         # A non-200 has a body too, and it is not a stream of payloads.
         conn.raise_for_status()
