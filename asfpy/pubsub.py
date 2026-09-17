@@ -131,7 +131,16 @@ async def _process_connection(session, pubsub_url, cursor=None):
     async with session.get(pubsub_url, headers=headers) as conn:
 
         # A non-200 has a body too, and it is not a stream of payloads.
-        conn.raise_for_status()
+        # raise_for_status() only rejects 4xx/5xx, so reject the rest --
+        # a 204, a 201 with a body -- explicitly.
+        if conn.status != 200:
+            raise aiohttp.ClientResponseError(
+                conn.request_info,
+                conn.history,
+                status=conn.status,
+                message=conn.reason,
+                headers=conn.headers,
+            )
 
         #print('LIMITS:', conn.content.get_read_buffer_limits())
 

@@ -133,6 +133,28 @@ def test_reconnects_when_the_server_says_no():
     assert _run(run()) == [{'n': 1}]
 
 
+def test_reconnects_when_the_server_answers_not_200():
+    """A 2xx that is not 200 has a body too, and raise_for_status() lets
+    it through: it must not be read as if it were a payload."""
+    connections = []
+
+    async def handler(request):
+        connections.append(None)
+        if len(connections) == 1:
+            return web.Response(status=201, text='{"created": true}\n')
+        return await _stream_one_payload(request, {'n': 1})
+
+    async def run():
+        runner, url = await _start_server(handler)
+        try:
+            return await _collect(url, 1)
+        finally:
+            await runner.cleanup()
+
+    assert _run(run()) == [{'n': 1}]
+    assert len(connections) == 2
+
+
 def test_reconnects_when_the_server_hangs_up_before_answering():
     """A server that takes the request and then drops the connection is
     reconnected to. aiohttp retries an idempotent request once by itself,
@@ -145,6 +167,7 @@ def test_reconnects_when_the_server_hangs_up_before_answering():
         if len(connections) <= 2:
             # Take the request, then hang up without answering it.
             writer.close()
+            await writer.wait_closed()
             return
         writer.write(b'HTTP/1.1 200 OK\r\n'
                      b'Content-Type: application/vnd.pypubsub-stream\r\n'
@@ -152,6 +175,7 @@ def test_reconnects_when_the_server_hangs_up_before_answering():
                      b'{"n": 1}\n')
         await writer.drain()
         writer.close()
+        await writer.wait_closed()
 
     async def run():
         server = await asyncio.start_server(handle, '127.0.0.1', 0)
@@ -177,8 +201,8 @@ def test_reconnects_when_a_payload_line_exceeds_the_read_buffer():
             resp = web.StreamResponse()
             resp.enable_chunked_encoding()
             await resp.prepare(request)
-            # A single line past the stream's limit. aiohttp sizes it as a multiple
-# of the read buffer, so be safely past any multiple.
+            # A single line past the stream's limit. aiohttp sizes it as a
+            # multiple of the read buffer, so be safely past any multiple.
             await resp.write(b'{"blob": "'
                              + b'x' * (3 * asfpy.pubsub.DEFAULT_READ_BUFFER_SIZE)
                              + b'"}\n')
