@@ -145,6 +145,7 @@ def test_reconnects_when_the_server_hangs_up_before_answering():
         if len(connections) <= 2:
             # Take the request, then hang up without answering it.
             writer.close()
+            await writer.wait_closed()
             return
         writer.write(b'HTTP/1.1 200 OK\r\n'
                      b'Content-Type: application/vnd.pypubsub-stream\r\n'
@@ -152,6 +153,7 @@ def test_reconnects_when_the_server_hangs_up_before_answering():
                      b'{"n": 1}\n')
         await writer.drain()
         writer.close()
+        await writer.wait_closed()
 
     async def run():
         server = await asyncio.start_server(handle, '127.0.0.1', 0)
