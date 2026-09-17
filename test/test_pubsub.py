@@ -165,6 +165,38 @@ def test_reconnects_when_the_server_hangs_up_before_answering():
     assert _run(run()) == [{'n': 1}]
 
 
+def test_reconnects_when_a_payload_line_exceeds_the_read_buffer():
+    """A payload line longer than the read buffer makes readuntil() raise
+    LineTooLong, which is neither a ValueError nor a connection error, so
+    without a catch it takes listen() down instead of reconnecting."""
+    connections = []
+
+    async def handler(request):
+        connections.append(None)
+        if len(connections) == 1:
+            resp = web.StreamResponse()
+            resp.enable_chunked_encoding()
+            await resp.prepare(request)
+            # A single line past the stream's limit. aiohttp sizes it as a multiple
+# of the read buffer, so be safely past any multiple.
+            await resp.write(b'{"blob": "'
+                             + b'x' * (3 * asfpy.pubsub.DEFAULT_READ_BUFFER_SIZE)
+                             + b'"}\n')
+            await resp.write_eof()
+            return resp
+        return await _stream_one_payload(request, {'n': 1})
+
+    async def run():
+        runner, url = await _start_server(handler)
+        try:
+            return await _collect(url, 1)
+        finally:
+            await runner.cleanup()
+
+    assert _run(run()) == [{'n': 1}]
+    assert len(connections) == 2
+
+
 # The header the server reads, spelled out rather than taken from the module,
 # so that a test failure means the wire is wrong and not merely the name.
 CURSOR_HEADER = 'X-Fetch-Since-Cursor'

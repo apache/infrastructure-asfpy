@@ -38,6 +38,7 @@ import logging
 import warnings
 
 import aiohttp
+from aiohttp.http_exceptions import LineTooLong
 
 
 LOGGER = logging.getLogger(__name__)
@@ -147,9 +148,12 @@ async def _process_connection(session, pubsub_url, cursor=None):
             # ignores it.
             try:
                 raw = await conn.content.readuntil(b'\n')
-            except ValueError as e:  # TODO: 3.14 can throw aiohttp.http_exceptions.LineTooLong
+            except (ValueError, LineTooLong) as e:
+                # A line past the read buffer raises LineTooLong rather than
+                # ValueError, and neither is a connection error: both mean this
+                # stream cannot be read, so end it and let the caller reconnect.
                 LOGGER.error(f'Saw "{e}"; re-raising as ClientPayloadError to close/reconnect')
-                raise aiohttp.ClientPayloadError('re-raised from ValueError in readuntil()')
+                raise aiohttp.ClientPayloadError(f're-raised from {type(e).__name__} in readuntil()') from e
 
             if not raw.endswith(b'\n'):
                 # At EOF, readuntil() returns what it has rather than raising:
@@ -163,7 +167,7 @@ async def _process_connection(session, pubsub_url, cursor=None):
                 payload = json.loads(raw)
             except ValueError as e:
                 LOGGER.error(f'Saw "{e}"; re-raising as ClientPayloadError to close/reconnect')
-                raise aiohttp.ClientPayloadError('re-raised from ValueError in json.loads()')
+                raise aiohttp.ClientPayloadError('re-raised from ValueError in json.loads()') from e
 
             yield payload
 
