@@ -1,7 +1,6 @@
 import time
 import logging
 import inspect
-import asyncio
 import functools
 
 class Stopwatch:
@@ -27,7 +26,7 @@ class Stopwatch:
         if self.name is None:
             self.name = f"Function '{func.__name__}'"
         # Check if the function is async
-        if asyncio.iscoroutinefunction(func):
+        if inspect.iscoroutinefunction(func):
             @functools.wraps(func)
             async def async_wrapper(*args, **kwargs):
                 self.start_time = time.time()  # Reset start_time at function call
