@@ -1,6 +1,6 @@
 [project]
 name = "asfpy"
-version = "0.59"
+version = "0.60"
 description = "ASF Common Python Methods"
 authors = [{name = "ASF Infrastructure", email = "users@infra.apache.org"}]
 readme = "README.md"
@@ -12,7 +12,7 @@ classifiers = [
 dependencies = [
     "aiohttp>=3.10.5,<4",
     "cffi>=1.17.1",
-    "cryptography>=46.0.5,<51",
+    "cryptography>=46.0.5",
     "easydict>=1.13,<2",
     "ezt>=1.1,<2",
     "pyyaml>=6.0.2,<7",
