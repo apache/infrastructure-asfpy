@@ -279,3 +279,78 @@ def test_a_keepalive_does_not_move_the_cursor():
                         {'stillalive': 1},
                         {'n': 1, 'pubsub_cursor': 'second'}]
     assert asked == [None, 'first']
+
+
+async def _listen_for(url, seconds):
+    """Read listen(URL) for SECONDS, discarding what it yields, and stop."""
+    events = asfpy.pubsub.listen(url)
+
+    async def drain():
+        async for _ in events:
+            pass
+
+    try:
+        await asyncio.wait_for(drain(), timeout=seconds)
+    except asyncio.TimeoutError:
+        pass
+    finally:
+        await events.aclose()
+
+
+def test_a_server_that_keeps_hanging_up_is_backed_off_from():
+    """A payload does not show a connection was healthy: a server that sends
+    one keepalive and hangs up sends one every time, and must not be
+    reconnected to as fast as it can answer."""
+    connections = []
+
+    async def handler(request):
+        connections.append(None)
+        return await _stream_one_payload(request, {'stillalive': 1})
+
+    async def run():
+        runner, url = await _start_server(handler)
+        try:
+            await _listen_for(url, 1.5)
+        finally:
+            await runner.cleanup()
+
+    _run(run())
+    # No wait before the second connection, two seconds before the third.
+    assert len(connections) == 2
+
+
+def test_a_connection_that_held_starts_the_backoff_over(monkeypatch):
+    """Once a connection has stayed up, whatever ended it was not the server
+    refusing to stay up, and the next one is opened straight away."""
+    monkeypatch.setattr(asfpy.pubsub, 'HEALTHY_CONNECTION_SECONDS', 0.3)
+    opened = []
+    held_until = []
+
+    async def handler(request):
+        loop = asyncio.get_running_loop()
+        opened.append(loop.time())
+        if len(opened) < 3:
+            return await _stream_one_payload(request, {'stillalive': 1})
+        resp = web.StreamResponse()
+        resp.enable_chunked_encoding()
+        await resp.prepare(request)
+        if len(opened) == 3:
+            for _ in range(5):
+                await resp.write(json.dumps({'stillalive': 1}).encode() + b'\n')
+                await asyncio.sleep(0.1)
+            held_until.append(loop.time())
+        await resp.write_eof()
+        return resp
+
+    async def run():
+        runner, url = await _start_server(handler)
+        try:
+            # 0s and 2s of backoff, then the third connection holds for 0.5s.
+            await _listen_for(url, 4)
+        finally:
+            await runner.cleanup()
+
+    _run(run())
+    assert len(opened) >= 4
+    # Continuing the backoff would have waited 6s here.
+    assert opened[3] - held_until[0] < 1.0
