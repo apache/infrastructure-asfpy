@@ -99,7 +99,13 @@ async def listen(pubsub_url, username=None, password=None, timeout=None, buffers
 
                     yield payload
 
-                LOGGER.info('Connection closed')
+                held = time.monotonic() - opened
+                if held < HEALTHY_CONNECTION_SECONDS:
+                    # The server accepted and hung up: the backoff below
+                    # keeps this to one warning every 30s at most.
+                    LOGGER.warning(f'Connection closed after {held:.1f}s, before it was healthy')
+                else:
+                    LOGGER.info('Connection closed')
 
             except (ConnectionRefusedError,
                     # ClientConnectionError covers the ways a connection can

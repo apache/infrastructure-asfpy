@@ -354,3 +354,43 @@ def test_a_connection_that_held_starts_the_backoff_over(monkeypatch):
     assert len(opened) >= 4
     # Continuing the backoff would have waited 6s here.
     assert opened[3] - held_until[0] < 1.0
+
+
+def test_a_server_that_keeps_hanging_up_is_warned_about(caplog):
+    """A connection that ends before it was healthy is the server
+    misbehaving, and says so - once per connection, which the backoff
+    keeps to one every 30s however fast the server answers."""
+
+    async def handler(request):
+        return await _stream_one_payload(request, {'stillalive': 1})
+
+    async def run():
+        runner, url = await _start_server(handler)
+        try:
+            await _listen_for(url, 1.5)
+        finally:
+            await runner.cleanup()
+
+    with caplog.at_level('INFO', logger='asfpy.pubsub'):
+        _run(run())
+    warnings = [r for r in caplog.records if r.levelname == 'WARNING']
+    assert len(warnings) == 2
+    assert 'before it was healthy' in warnings[0].getMessage()
+
+
+def test_a_connection_that_held_closes_quietly(monkeypatch, caplog):
+    monkeypatch.setattr(asfpy.pubsub, 'HEALTHY_CONNECTION_SECONDS', 0.0)
+
+    async def handler(request):
+        return await _stream_one_payload(request, {'stillalive': 1})
+
+    async def run():
+        runner, url = await _start_server(handler)
+        try:
+            await _collect(url, 2)
+        finally:
+            await runner.cleanup()
+
+    with caplog.at_level('INFO', logger='asfpy.pubsub'):
+        _run(run())
+    assert not [r for r in caplog.records if r.levelname == 'WARNING']
