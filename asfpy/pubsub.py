@@ -120,7 +120,7 @@ async def listen(pubsub_url, username=None, password=None, timeout=None, buffers
                     ) as e:
                 LOGGER.error(f'Connection failed ({type(e).__name__}: {e})')
 
-            # Start the backoff over only once a connection has held. Not on
+            # Reset the backoff timer only once a connection has held. Not on
             # receiving a payload: a server that sends one keepalive and hangs
             # up sends one every time, and would be reconnected to as fast as
             # it can answer.
