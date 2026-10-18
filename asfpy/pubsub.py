@@ -57,6 +57,11 @@ PUBSUB_CURSOR_HEADER = 'X-Fetch-Since-Cursor'
 # Default read buffer size. Max payload size in pypubsub is 256kb (plus metadata and JSON overhead)
 DEFAULT_READ_BUFFER_SIZE = 300 * 1024
 
+# A connection that stays up this long was ended by something other than a
+# server that will not stay up, so the next one is opened without waiting.
+# Matches the longest backoff step.
+HEALTHY_CONNECTION_SECONDS = 30.0
+
 
 async def listen(pubsub_url, username=None, password=None, timeout=None, buffersize=None):
 
@@ -85,18 +90,22 @@ async def listen(pubsub_url, username=None, password=None, timeout=None, buffers
         ### tbd: look at event loop, to see if it has been halted
         while True:
             LOGGER.debug('Opening new connection...')
+            opened = time.monotonic()
             try:
                 async for payload in _process_connection(session, pubsub_url, cursor):
-                    # We got a payload, so reset the DELAY.
-                    delay = 0.0
-
                     # Keepalives carry no cursor, and leave this one where it is.
                     if isinstance(payload, dict):
                         cursor = payload.get(PUBSUB_CURSOR_KEY, cursor)
 
                     yield payload
 
-                LOGGER.info(f'Connection closed, reconnecting in {delay} seconds')
+                held = time.monotonic() - opened
+                if held < HEALTHY_CONNECTION_SECONDS:
+                    # The server accepted and hung up: the backoff below
+                    # keeps this to one warning every 30s at most.
+                    LOGGER.warning(f'Connection closed after {held:.1f}s, before it was healthy')
+                else:
+                    LOGGER.info('Connection closed')
 
             except (ConnectionRefusedError,
                     # ClientConnectionError covers the ways a connection can
@@ -109,8 +118,16 @@ async def listen(pubsub_url, username=None, password=None, timeout=None, buffers
                     aiohttp.ClientResponseError,
                     aiohttp.ClientPayloadError,
                     ) as e:
-                LOGGER.error(f'Connection failed ({type(e).__name__}: {e})'
-                             f', reconnecting in {delay} seconds')
+                LOGGER.error(f'Connection failed ({type(e).__name__}: {e})')
+
+            # Reset the backoff timer only once a connection has held. Not on
+            # receiving a payload: a server that sends one keepalive and hangs
+            # up sends one every time, and would be reconnected to as fast as
+            # it can answer.
+            if time.monotonic() - opened >= HEALTHY_CONNECTION_SECONDS:
+                delay = 0.0
+
+            LOGGER.info(f'Reconnecting in {delay} seconds')
 
             # However this connection ended, wait before opening the next one.
             await asyncio.sleep(delay)
