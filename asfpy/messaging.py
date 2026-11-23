@@ -35,6 +35,7 @@ if not __debug__:
 
 import email.utils
 import email.header
+import re
 import smtplib
 import warnings
 
@@ -44,6 +45,33 @@ SMTP_PORT = 587
 
 # Apache/Infra code defaults to this MSA for sending email.
 DEFAULT_MSA = 'mail-relay.apache.org'
+
+
+# The name of a header field: printable US-ASCII, without the colon that ends it.
+#   https://www.rfc-editor.org/rfc/rfc5322#section-2.2
+_FIELD_NAME_RE = re.compile(r'[!-9;-~]+')
+
+
+def _check_field_name(name):
+    """Raise ValueError unless NAME can be the name of a header field.
+
+    The message is put together as text, so a name with a newline, a colon
+    or a space in it would not be the name of one header: it would end the
+    header, or start another one, of the caller's caller's choosing.
+    """
+    if not isinstance(name, str) or not _FIELD_NAME_RE.fullmatch(name):
+        raise ValueError('Not a valid name for an email header: %r' % (name,))
+
+
+def _check_field_value(what, value):
+    """Raise ValueError if VALUE cannot be the value of a header field.
+
+    A carriage return or a line feed ends the header, and what follows it
+    becomes a header of its own (a Bcc, say), or the start of the body.
+    WHAT says which argument the value came from, for the error message.
+    """
+    if '\r' in value or '\n' in value or '\x00' in value:
+        raise ValueError('%s may not contain a line break: %r' % (what, value))
 
 
 def uniaddr(addr):
@@ -98,6 +126,19 @@ def mail(
         'THREAD_KEY must be provided when starting a thread'
     assert sender and (recipient or recipients) and subject and message, \
         'All required arguments must be provided.'
+
+    # MESSAGEID, THREAD_KEY and HEADERS go into the header of the message
+    # as they are, so none of them may bring a line break with it: that
+    # would let whoever supplied the value add headers of their own.
+    # (SUBJECT, SENDER and the recipients are encoded below, which deals
+    # with line breaks in them.)
+    if messageid:
+        _check_field_value('messageid', str(messageid))
+    if thread_key:
+        _check_field_value('thread_key', str(thread_key))
+    for key, val in headers.items():
+        _check_field_name(key)
+        _check_field_value('Header %s' % (key,), str(val))
 
     # Handle threading of email messages.
     if thread_start:
