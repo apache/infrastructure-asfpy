@@ -24,9 +24,55 @@
 
 import asyncio
 import logging
+import os
 import concurrent.futures
 
 import bonsai
+
+# TIMEOUTS
+#
+# Two limits apply, to two different parts of the work, because nothing
+# else was found to work for both.
+#
+# 1. Reaching the server. While a connection is being made (the TCP
+#    connection, and the TLS handshake that follows it for ldaps://),
+#    bonsai waits inside libldap, holding Python's global lock. If the
+#    server does not answer, EVERY thread of the process stops with it,
+#    the event loop included, and the timeout that bonsai's connect()
+#    takes does not end the wait. What does end it is libldap's own
+#    network timeout. bonsai has no call to set that, but libldap reads
+#    it from the environment, once, when it is first used in a process:
+#    so it is set here, as this module is imported, unless the
+#    environment already has a value. The process still stands still
+#    for that long when the server does not answer: keep it short.
+#
+#    To use another value, set LDAPNETWORK_TIMEOUT (in seconds) in the
+#    environment of the process. Note that this then applies to anything
+#    in the process that uses libldap, and to the programs it starts,
+#    such as ldapsearch. A value from ldap.conf is not used: the
+#    environment comes first.
+NETWORK_TIMEOUT = 5
+os.environ.setdefault('LDAPNETWORK_TIMEOUT', str(NETWORK_TIMEOUT))
+
+# 2. Waiting for an answer, once connected: the bind, a search, a
+#    whoami. This is a wait within asyncio, in a thread of its own, and
+#    does not stop anything else. It is the TIMEOUT argument of
+#    ASF_LDAPClient, and of search() and whoami(), in seconds; None
+#    waits for as long as it takes.
+DEFAULT_TIMEOUT = 30
+
+# Connections are made synchronously, in a thread. That is bonsai's
+# default, and it is set here to say so: with asynchronous connecting
+# there is a bug with GnuTLS, and bonsai then replaces the network
+# timeout above with one of its own.
+# See: https://github.com/noirello/bonsai/issues/25
+# and: https://github.com/noirello/bonsai/issues/69
+#
+# This is a setting of the whole process, so it is made once. It used
+# to be turned off before each connection and on again after it, and a
+# connection that turned it on again, while another was being made in
+# another thread, turned it on for that one as well.
+bonsai.set_connect_async(False)
 
 # Re-map the LDAPSearchScope constants to our namespace.
 # These can now be used as (eg.) asfpy.aioldap.SCOPE.SUBTREE
@@ -36,9 +82,17 @@ from bonsai import LDAPSearchScope as SCOPE
 LOGGER = logging.getLogger(__name__)
 
 
+# For a TIMEOUT argument that was not given, as None is a value for it.
+_UNSET = object()
+
+
 class ASF_LDAPConnection:
-    def __init__(self, client, executor):
+    def __init__(self, client, executor, timeout=DEFAULT_TIMEOUT):
         # NOTE: must be instantiated within one of the EXECUTOR threads.
+
+        # How long to wait for the server's answer to the bind, and to
+        # each search() and whoami() that does not say otherwise.
+        self.timeout = timeout
 
         # Shared Executor holding one or more threads.
         self.executor = executor
@@ -51,32 +105,38 @@ class ASF_LDAPConnection:
         # loop within any thread of the Executor.
         self.loop = asyncio.new_event_loop()
 
-        # Hack around GnuTLS bug with async.
-        # See: https://github.com/noirello/bonsai/issues/25
-        # and: https://github.com/noirello/bonsai/issues/69
-        #
         # In THIS executor thread, we'll perform the synchronous
         # connection, so that the main thread's event loop will
-        # not be blocked.
+        # not be blocked. (But see TIMEOUTS, at the top of this module,
+        # for when the server does not answer.)
         async def do_connect():
             ### for testing: pretend this connection blocks
             #import time; time.sleep(5)
 
-            # Tell bonsai to connect synchronously.
-            bonsai.set_connect_async(False)
-            try:
-                # Ties to self.loop (the running loop now).
-                return await client.connect(is_async=True)
-            finally:
-                # Make sure this always gets reset.
-                bonsai.set_connect_async(True)
+            # Ties to self.loop (the running loop now).
+            return await client.connect(is_async=True, timeout=timeout)
 
         # The underlying LDAP connection, tied to our loop.
-        self.conn = self.loop.run_until_complete(do_connect())
+        try:
+            self.conn = self.loop.run_until_complete(do_connect())
+        except BaseException:
+            # No connection, so nobody will call close(): give back the
+            # loop's file descriptors now, and not when the garbage
+            # collector gets round to it. A wrong password ends up here.
+            self.loop.close()
+            raise
 
     def close(self):
-        self.conn.close()
+        if self.conn is not None:
+            self.conn.close()
         self.conn = None  # ensure self is unusable
+        # The loop holds three file descriptors. Left open, they are only
+        # given back when the garbage collector finds the loop.
+        if not self.loop.is_closed():
+            self.loop.close()
+        # Let go of the client's threads too, so that they can stop once
+        # the client is gone, though somebody still holds this object.
+        self.executor = None
 
     async def use_loop(self, loop, method, *args, **kw):
         "Running in LOOP, run/wait for METHOD with *ARGS and **KW."
@@ -92,15 +152,28 @@ class ASF_LDAPConnection:
         # Wait within the caller's loop for the result.
         return await loop.run_in_executor(self.executor, call_method)
 
-    async def search(self, base, attrs, scope=SCOPE.SUBTREE, loop=None):
+    async def search(self, base, attrs, scope=SCOPE.SUBTREE, loop=None,
+                     timeout=_UNSET):
+        """Search below BASE for ATTRS.
+
+        Waits TIMEOUT seconds for the server, or as long as the client
+        was told to if TIMEOUT is not given, and then raises
+        asyncio.TimeoutError. None waits for as long as it takes.
+        """
+        if timeout is _UNSET:
+            timeout = self.timeout
         return await self.use_loop(loop,
                                    self.conn.search,
                                    base,
                                    scope,
-                                   attrlist=attrs)
+                                   attrlist=attrs,
+                                   timeout=timeout)
 
-    async def whoami(self, loop=None):
-        return await self.use_loop(loop, self.conn.whoami)
+    async def whoami(self, loop=None, timeout=_UNSET):
+        "As search(), for TIMEOUT."
+        if timeout is _UNSET:
+            timeout = self.timeout
+        return await self.use_loop(loop, self.conn.whoami, timeout=timeout)
 
     ### TBD ASF-specific custom methods? or use app-specific subclasses?
 
@@ -109,7 +182,15 @@ class ASF_LDAPClient:
 
     CONNECTION_CLASS = ASF_LDAPConnection
 
-    def __init__(self, uri, binddn, bindpw):
+    def __init__(self, uri, binddn, bindpw, timeout=DEFAULT_TIMEOUT):
+        """A client for the server at URI, that binds as BINDDN.
+
+        TIMEOUT is how long to wait, in seconds, for the server's answer
+        to the bind and to each search; None waits for as long as it
+        takes. It is not how long to wait for the connection itself to be
+        made: see TIMEOUTS, at the top of this module.
+        """
+        self.timeout = timeout
         self.client = bonsai.LDAPClient(uri)
         self.client.set_credentials("SIMPLE", binddn, bindpw)
         self.client.set_cert_policy("allow")  # TODO: Load our cert(?)
@@ -123,11 +204,22 @@ class ASF_LDAPClient:
 
         # Run (blocking) in an executor thread.
         def blocking_connect():
-            return self.CONNECTION_CLASS(self.client, self.executor)
+            return self.CONNECTION_CLASS(self.client, self.executor,
+                                         timeout=self.timeout)
 
         future = loop.run_in_executor(self.executor, blocking_connect)
         #print('CONN-FUTURE:', future)
         return ConnectContextManager(future)
+
+    def close(self):
+        """Stop the threads of this client. Its connections can no longer
+        be used, and no new ones can be made.
+
+        Without this the threads stop when the client, and every
+        connection it made, has been garbage collected. Call it when the
+        client is done with, if clients are made often.
+        """
+        self.executor.shutdown(wait=False)
 
 # For debugging, we want the ASF_ prefix, but callers can skip it.
 LDAPClient = ASF_LDAPClient
@@ -143,6 +235,7 @@ class ConnectContextManager:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         self.conn.close()
+        self.conn = None
 
 
 def test_conns(client):
@@ -197,7 +290,7 @@ def test_conns(client):
 
 
 if __name__ == '__main__':
-    import os, getpass
+    import getpass
     u = os.environ.get('AIOLDAP_USER') or getpass.getuser()
     dn = 'uid=%s,ou=people,dc=apache,dc=org' % u
     p = os.environ.get('AIOLDAP_PASSWORD') or getpass.getpass(f"Password for {u}: ")

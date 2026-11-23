@@ -28,8 +28,17 @@ jobs:
       run: uv python install ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        sudo apt-get install -y libldap2-dev libsasl2-dev ldap-utils
+        sudo apt-get update -y
+        sudo apt-get install -y libldap2-dev libsasl2-dev ldap-utils slapd
+        # The tests of aioldap start a slapd of their own, with its files in
+        # a temporary directory, which the AppArmor profile of the package
+        # does not allow. Stop the one that the package started, as well.
+        sudo systemctl stop slapd || true
+        sudo ln -sf /etc/apparmor.d/usr.sbin.slapd /etc/apparmor.d/disable/ || true
+        sudo apparmor_parser -R /etc/apparmor.d/usr.sbin.slapd || true
         uv sync --all-extras --python ${{ matrix.python-version }}
     - name: Test with pytest
       run: |
-        uv run pytest
+        # -rs lists the tests that were skipped, and why: the tests of
+        # aioldap are skipped if slapd could not be started
+        uv run pytest -rs
