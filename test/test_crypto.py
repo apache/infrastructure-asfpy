@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.
@@ -15,9 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pytest
-import asfpy.crypto
 import pathlib
+
+import pytest
+
+import asfpy.crypto
 
 TESTMSG = "Hello, world!"
 TEST_ROOT = pathlib.Path(__file__).parent
@@ -31,7 +32,7 @@ def test_ed25519_keypair():
 
     # Test verification with proper and invalid sig
     assert keypair.verify_response(test_token) == TESTMSG, "Verification of test token failed!"
-    assert keypair.verify_response("foo:bar") is None, "Verification succeeded with bogus token, not supposed to happen!"
+    assert keypair.verify_response("foo:bar") is None, "Verification succeeded with bogus token!"
 
 
 def test_existing_keys():
@@ -55,4 +56,4 @@ def test_existing_keys():
 
     # Test verification with proper and invalid sig with imported public key
     assert pubkeypair.verify_response(test_token) == TESTMSG, "Verification of test token failed!"
-    assert pubkeypair.verify_response("foo:bar") is None, "Verification succeeded with bogus token, not supposed to happen!"
+    assert pubkeypair.verify_response("foo:bar") is None, "Verification succeeded with bogus token!"

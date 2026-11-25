@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-import subprocess
 import asyncio.subprocess
 import base64
+import subprocess
 
 """Python wrappers for common CLI tools"""
 
@@ -85,6 +85,8 @@ async def ldapsearch_cli_async(
 
     # Run asfldapsearch tool, parse the output and return the data structure
     cliargs = ldapsearch_cliargs(ldap_base, ldap_scope, ldap_query, ldap_attrs, ldap_exec)
-    proc = await asyncio.subprocess.create_subprocess_exec(cliargs[0], *cliargs[1:], stdout=asyncio.subprocess.PIPE) # pylint: disable=no-member
-    stdout, _stderr = await proc.communicate()  # "await proc.wait()" can deadlock inside async servers, so avoid using it.
+    proc = await asyncio.subprocess.create_subprocess_exec(  # pylint: disable=no-member
+        cliargs[0], *cliargs[1:], stdout=asyncio.subprocess.PIPE)
+    # "await proc.wait()" can deadlock inside async servers, so avoid using it.
+    stdout, _stderr = await proc.communicate()
     return ldapsearch_parse(stdout.decode("us-ascii"))

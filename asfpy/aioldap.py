@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.
@@ -23,17 +22,16 @@
 #
 
 import asyncio
+import concurrent.futures
 import logging
 import os
 import ssl
-import concurrent.futures
 
 import bonsai
 
 # Re-map the LDAPSearchScope constants to our namespace.
 # These can now be used as (eg.) asfpy.aioldap.SCOPE.SUBTREE
 from bonsai import LDAPSearchScope as SCOPE
-
 
 LOGGER = logging.getLogger(__name__)
 
@@ -266,18 +264,23 @@ def test_conns(client):
                 # between reconnections
                 await asyncio.sleep(random.randint(0, 5))
 
-    loop.create_task(print_me())
-    loop.create_task(heartbeat())
-    loop.create_task(conn_usage('A'))
-    loop.create_task(conn_usage('B'))
-
-    loop.run_forever()
+    # Keep references to the tasks: the loop holds them only weakly, and a
+    # task that is garbage collected stops silently.
+    tasks = [loop.create_task(print_me()),
+             loop.create_task(heartbeat()),
+             loop.create_task(conn_usage('A')),
+             loop.create_task(conn_usage('B'))]
+    try:
+        loop.run_forever()
+    finally:
+        for task in tasks:
+            task.cancel()
 
 
 if __name__ == '__main__':
     import getpass
     u = os.environ.get('AIOLDAP_USER') or getpass.getuser()
-    dn = 'uid=%s,ou=people,dc=apache,dc=org' % u
+    dn = f'uid={u},ou=people,dc=apache,dc=org'
     p = os.environ.get('AIOLDAP_PASSWORD') or getpass.getpass(f"Password for {u}: ")
     c = ASF_LDAPClient('ldaps://ldap-us.apache.org:636', dn, p)
     test_conns(c)

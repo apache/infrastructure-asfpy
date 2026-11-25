@@ -29,11 +29,11 @@
 #      accessed as attributes.
 #
 
-import sqlite3
 import functools
+import sqlite3
 
-import yaml
 import easydict
+import yaml
 
 
 class DB:

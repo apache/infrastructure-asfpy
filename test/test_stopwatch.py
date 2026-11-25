@@ -1,9 +1,11 @@
-import time
 import asyncio
-from asfpy.stopwatch import Stopwatch
 
 # Configure logging to see output
 import logging
+import time
+
+from asfpy.stopwatch import Stopwatch
+
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 _LOGGER = logging.getLogger(__name__)
 
