@@ -116,6 +116,11 @@ def make_certificates(directory):
     ca_cert = certificate('asfpy test CA', ca_key, 'asfpy test CA', ca_key, ca=True)
     server_cert = certificate('localhost', server_key, 'asfpy test CA', ca_key, ca=False)
 
+    # Another authority, which did not issue the server's certificate
+    other_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    other_cert = certificate('some other CA', other_key, 'some other CA', other_key, ca=True)
+    (directory / 'other-ca.pem').write_bytes(other_cert.public_bytes(serialization.Encoding.PEM))
+
     paths = [directory / 'ca.pem', directory / 'server.pem', directory / 'server.key']
     paths[0].write_bytes(ca_cert.public_bytes(serialization.Encoding.PEM))
     paths[1].write_bytes(server_cert.public_bytes(serialization.Encoding.PEM))
@@ -128,7 +133,13 @@ def make_certificates(directory):
 @pytest.fixture(scope='session')
 def ldap_server(tmp_path_factory):
     """A running slapd with one user and one project. Gives an object with
-    uri, user_dn, password, project_base, ca_cert and pid."""
+    uri, user_dn, password, project_base, pid, and for its certificate:
+
+    ca_cert         the authority that issued it
+    other_ca_cert   an authority that did not
+    other_name_uri  the same server at an address that the certificate is
+                    not for, or None where there is no such address
+    """
     pytest.importorskip('bonsai', reason='needs the aioldap extra')
     slapd = shutil.which('slapd') or shutil.which('slapd', path='/usr/sbin:/usr/local/sbin:/usr/libexec')
     slapadd = shutil.which('slapadd') or shutil.which('slapadd', path='/usr/sbin:/usr/local/sbin')
@@ -156,11 +167,15 @@ def ldap_server(tmp_path_factory):
 
     port = free_port()
     uri = f'ldaps://127.0.0.1:{port}'
+    # The certificate is for 127.0.0.1. On Linux every 127.x.y.z is this
+    # machine, so 127.0.0.2 is the server under a name it has no certificate for.
+    other_name_uri = f'ldaps://127.0.0.2:{port}' if sys.platform == 'linux' else None
+    listen = uri + '/' + (' ' + other_name_uri + '/' if other_name_uri else '')
     try:
         subprocess.run([slapadd, '-f', str(config), '-l', str(directory / 'base.ldif')],
                        check=True, capture_output=True, timeout=60)
         # slapd puts itself in the background, and writes its pid to the file
-        subprocess.run([slapd, '-f', str(config), '-h', uri + '/'], check=True, capture_output=True, timeout=60)
+        subprocess.run([slapd, '-f', str(config), '-h', listen], check=True, capture_output=True, timeout=60)
     except (OSError, subprocess.SubprocessError) as e:
         pytest.skip(f'slapd could not be started: {e}')
     pidfile = directory / 'slapd.pid'
@@ -173,7 +188,8 @@ def ldap_server(tmp_path_factory):
     pid = int(pidfile.read_text())
 
     yield types.SimpleNamespace(uri=uri, user_dn=USER_DN, password=USER_PASSWORD, project_base=PROJECT_BASE,
-                                ca_cert=str(ca_cert), pid=pid)
+                                ca_cert=str(ca_cert), other_ca_cert=str(directory / 'other-ca.pem'),
+                                other_name_uri=other_name_uri, pid=pid)
 
     try:
         os.kill(pid, signal.SIGCONT)  # in case a test left it stopped
@@ -188,8 +204,8 @@ def run_python():
     printed and how long it took.
 
     For what can only be seen in a new process: libldap reads its settings
-    once, when it is first used, and some of what is tested stops every
-    thread of the process that it happens in.
+    once, when it is first used, and keeps what it set up for the first
+    connection.
     """
     def run(code, env=None, timeout=60):
         environment = {k: v for k, v in os.environ.items() if not k.startswith('LDAP')}
