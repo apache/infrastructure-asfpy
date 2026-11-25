@@ -24,6 +24,8 @@
 
 import asyncio
 import logging
+import os
+import ssl
 import concurrent.futures
 
 import bonsai
@@ -34,6 +36,65 @@ from bonsai import LDAPSearchScope as SCOPE
 
 
 LOGGER = logging.getLogger(__name__)
+
+# THE SERVER'S CERTIFICATE
+#
+# The certificate that the server presents is verified: that it was
+# issued by a certificate authority that is trusted, and for the host
+# name in the URI. Without that, whoever can get between this process
+# and the server can answer in the server's place, and is handed the
+# password of every bind.
+#
+# Which authorities are trusted is, in this order:
+#   1. the CA_CERT argument of ASF_LDAPClient, a file of certificates;
+#   2. what libldap is configured with: LDAPTLS_CACERT or
+#      LDAPTLS_CACERTDIR in the environment, or TLS_CACERT or
+#      TLS_CACERTDIR in ldap.conf;
+#   3. the certificate authorities of the system.
+#
+# The third is not what libldap does by itself: with nothing configured
+# it trusts nobody, and Debian's ldap.conf, which names the system's
+# file, is in a package (libldap-common) that is often not installed.
+
+# Where to look for libldap's configuration, as libldap does.
+LDAP_CONF_FILES = ['/etc/ldap/ldap.conf', '/etc/openldap/ldap.conf',
+                   '/usr/local/etc/openldap/ldap.conf', '~/ldaprc', '~/.ldaprc']
+
+# Where the certificate authorities of the system are kept, on the
+# systems we know. The first that exists is used.
+SYSTEM_CA_FILES = ['/etc/ssl/certs/ca-certificates.crt',  # Debian, Ubuntu, Alpine
+                   '/etc/pki/tls/certs/ca-bundle.crt',    # Fedora, RHEL
+                   '/etc/ssl/ca-bundle.pem',              # openSUSE
+                   '/etc/ssl/cert.pem']                   # macOS, the BSDs
+
+
+def libldap_has_ca():
+    "Is libldap told, by the environment or an ldap.conf, whom to trust?"
+    if os.environ.get('LDAPTLS_CACERT') or os.environ.get('LDAPTLS_CACERTDIR'):
+        return True
+    if 'LDAPNOINIT' in os.environ:
+        return False  # libldap then reads no ldap.conf at all
+    files = list(LDAP_CONF_FILES)
+    if os.environ.get('LDAPCONF'):
+        files.append(os.environ['LDAPCONF'])
+    for name in files:
+        try:
+            with open(os.path.expanduser(name), encoding='utf-8', errors='replace') as conf:
+                if any(line.split()[:1] and line.split()[0].upper() in ('TLS_CACERT', 'TLS_CACERTDIR')
+                       for line in conf):
+                    return True
+        except OSError:
+            pass
+    return False
+
+
+def system_ca_file():
+    "The file of the system's certificate authorities, or None."
+    candidates = [os.environ.get('SSL_CERT_FILE'), ssl.get_default_verify_paths().cafile]
+    for name in candidates + SYSTEM_CA_FILES:
+        if name and os.path.isfile(name):
+            return name
+    return None
 
 
 class ASF_LDAPConnection:
@@ -109,10 +170,27 @@ class ASF_LDAPClient:
 
     CONNECTION_CLASS = ASF_LDAPConnection
 
-    def __init__(self, uri, binddn, bindpw):
+    def __init__(self, uri, binddn, bindpw, ca_cert=None, cert_policy='demand'):
+        """A client for the server at URI, that binds as BINDDN.
+
+        The server's certificate is verified. CA_CERT is a file with the
+        certificates of the authorities to trust, for a server whose
+        certificate was not issued by one that the system trusts already:
+        see THE SERVER'S CERTIFICATE, at the top of this module.
+
+        CERT_POLICY is bonsai's: 'demand' verifies, and 'allow' and
+        'never' do not, and are for a test server only. Use the same
+        policy for every client of a process. libldap keeps what it set
+        up for the first connection, so a later client with another
+        policy, and no CA_CERT of its own, gets the policy of the first.
+        """
         self.client = bonsai.LDAPClient(uri)
         self.client.set_credentials("SIMPLE", binddn, bindpw)
-        self.client.set_cert_policy("allow")  # TODO: Load our cert(?)
+        self.client.set_cert_policy(cert_policy)
+        if ca_cert is None and not libldap_has_ca():
+            ca_cert = system_ca_file()
+        if ca_cert is not None:
+            self.client.set_ca_cert(ca_cert)
 
         self.executor = concurrent.futures.ThreadPoolExecutor(
             thread_name_prefix='aioldap')
@@ -197,7 +275,7 @@ def test_conns(client):
 
 
 if __name__ == '__main__':
-    import os, getpass
+    import getpass
     u = os.environ.get('AIOLDAP_USER') or getpass.getuser()
     dn = 'uid=%s,ou=people,dc=apache,dc=org' % u
     p = os.environ.get('AIOLDAP_PASSWORD') or getpass.getpass(f"Password for {u}: ")
