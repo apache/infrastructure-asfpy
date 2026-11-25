@@ -25,21 +25,21 @@
 #   2. Remember the specific string object for those statements,
 #      and re-use them in cursor.execute() for better performance.
 #   3. Rows fetched with SELECT statements are wrapped into a
-#      EasyDict() instance, such that columns can be easily
-#      accessed as attributes.
+#      Box instance (from python-box), such that columns can be
+#      easily accessed as attributes.
 #
 
 import sqlite3
 import functools
 
 import yaml
-import easydict
+import box
 
 
 class DB:
     """Wrapper/functional class for accessing Sqlite3 databases.
 
-    This class focuses on returning EasyDict instances for query results,
+    This class focuses on returning Box instances for query results,
     so that columns can be indexed by name instead of position.
 
     In addition, it makes it easy to create cursors for later usage. Naming
@@ -54,8 +54,9 @@ class DB:
                  isolation_level=None):
 
         def row_factory(cursor, row):
-            "Return an EasyDict of the row, for attribute access."
-            return easydict.EasyDict(sqlite3.Row(cursor, row))
+            "Return a Box of the row, for attribute access."
+            # Box does not take a sqlite3.Row directly, so go via a dict.
+            return box.Box(dict(sqlite3.Row(cursor, row)))
 
         # Note: default isolation_level=None means autocommit mode.
         self.conn = sqlite3.connect(fname, isolation_level=isolation_level)
@@ -111,7 +112,7 @@ class _Cursor(sqlite3.Cursor):
         # to completion instead. For queries using .first_row() this should
         # be no further rows.
         _ = self.fetchall()
-        return row  # note the ROW_FACTORY implies this is an EasyDict
+        return row  # note the ROW_FACTORY implies this is a Box
 
 
 if __name__ == '__main__':
