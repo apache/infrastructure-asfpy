@@ -9,7 +9,7 @@ This Python library contains features commonly used at the Apache Software Found
 (For asfpy 0.37 and below, look at our old [Subversion repository](https://svn.apache.org/repos/infra/infrastructure/trunk/projects/asfpy/))
 
 ## Package Documention
-- `aioldap`: asynchronous LDAP client (_documentation TBD_)
+- `aioldap`: asynchronous LDAP client. See [documentation](aioldap.md)
 - `clitools`: LDAP work via command line tooling (_documentation TBD_)
 - `crypto`: helper for ED25519 work (_documentation TBD_)
 - `db`: high performance simplified SQLite client (_documentation TBD_)
