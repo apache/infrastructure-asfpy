@@ -224,7 +224,7 @@ wheels = [
 
 [[package]]
 name = "asfpy"
-version = "0.61"
+version = "0.62"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
