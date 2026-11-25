@@ -29,6 +29,10 @@ import ssl
 
 import bonsai
 
+# Re-map the LDAPSearchScope constants to our namespace.
+# These can now be used as (eg.) asfpy.aioldap.SCOPE.SUBTREE
+from bonsai import LDAPSearchScope as SCOPE
+
 # TIMEOUTS
 #
 # Two limits apply, to two different parts of the work, because nothing
@@ -73,10 +77,6 @@ DEFAULT_TIMEOUT = 30
 # connection that turned it on again, while another was being made in
 # another thread, turned it on for that one as well.
 bonsai.set_connect_async(False)
-
-# Re-map the LDAPSearchScope constants to our namespace.
-# These can now be used as (eg.) asfpy.aioldap.SCOPE.SUBTREE
-from bonsai import LDAPSearchScope as SCOPE
 
 LOGGER = logging.getLogger(__name__)
 

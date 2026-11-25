@@ -21,6 +21,7 @@ They are skipped where bonsai or slapd is not installed.
 
 import asyncio
 import contextlib
+import itertools
 import os
 import signal
 import socket
@@ -182,7 +183,7 @@ def test_search_gives_up_on_a_server_that_does_not_answer(ldap_server):
     waited = asyncio.run(main())
     assert 0.9 < waited < 5
     # The event loop went on running while the search waited
-    assert max(later - earlier for earlier, later in zip(beats, beats[1:])) < 0.7
+    assert max(later - earlier for earlier, later in itertools.pairwise(beats)) < 0.7
 
 
 def test_search_timeout_can_be_given_for_one_search(ldap_server):
