@@ -52,6 +52,13 @@ Running the tests:
 $ uv run pytest
 ```
 
+Linting, as CI does (ruff's rules are in `pyproject.toml`, pylint's in `pylintrc`):
+
+```console
+$ uv run ruff check .
+$ uv run pylint asfpy/*.py test/*.py
+```
+
 ## Installation
 
 Create and activate a virtual environment and then install `asfpy` using [pip](https://pip.pypa.io):

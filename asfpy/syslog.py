@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.
@@ -14,9 +13,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" simple syslog redirect module """
+""" simple syslog redirect module
 
-"""Example:
+Example:
 import asfpy.syslog
 
 print = asfpy.syslog.Printer(identity='myapp')
@@ -28,9 +27,10 @@ print("Hello!!") # print to syslog AND stdout
 print = asfpy.syslog.Printer(stderr=True)
 print("Hello!!") # print to syslog AND stderr
 """
-import syslog
 import os
 import sys
+import syslog
+
 
 class Printer:
     def __init__(self, **kwargs):

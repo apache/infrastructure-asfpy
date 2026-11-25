@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.
@@ -28,18 +27,17 @@
 #   so this client will not work with that server.
 #
 
-import requests
-import requests.exceptions
-import json
-import time
-import sys
 import asyncio
+import json
 import logging
+import sys
+import time
 import warnings
 
 import aiohttp
+import requests
+import requests.exceptions
 from aiohttp.http_exceptions import LineTooLong
-
 
 LOGGER = logging.getLogger(__name__)
 
@@ -73,7 +71,7 @@ async def listen(pubsub_url, username=None, password=None, timeout=None, buffers
     if timeout is None:
         timeout = DEFAULT_INACTIVITY_TIMEOUT
     ct = aiohttp.ClientTimeout(sock_read=timeout)
-    
+
     if buffersize is None:
         buffersize = DEFAULT_READ_BUFFER_SIZE
 
@@ -239,7 +237,7 @@ class Listener:
     """ Generic listener for pubsubs. Grabs each payload and runs process() on them. """
 
     def __init__(self, url):
-        warnings.warn('use listen() instead', DeprecationWarning)
+        warnings.warn('use listen() instead', DeprecationWarning, stacklevel=2)
         self.url = url
         self.connection = None
 
@@ -256,7 +254,7 @@ def listen_forever(func, url, auth=None, raw=False, since=-1, debug=False):
 
     ### more docco about FUNC calling, AUTH, RAW, SINCE, DEBUG
     """
-    warnings.warn('use listen() instead', DeprecationWarning)
+    warnings.warn('use listen() instead', DeprecationWarning, stacklevel=2)
 
     while True:
         if debug:

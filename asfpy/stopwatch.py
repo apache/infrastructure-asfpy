@@ -1,7 +1,8 @@
-import time
-import logging
-import inspect
 import functools
+import inspect
+import logging
+import time
+
 
 class Stopwatch:
     def __init__(self, name=None):

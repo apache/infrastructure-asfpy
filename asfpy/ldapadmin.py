@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.
@@ -21,14 +20,16 @@ if not __debug__:
     raise RuntimeError("This code requires Assertions to be enabled")
 
 import sys
+
 assert sys.version_info >= (3, 2)
+
+import re
+import secrets
+import string
 
 import ldap
 import ldap.modlist
-import re
 import passlib.hash
-import secrets
-import string
 
 LDAP_SANDBOX = "ldaps://ldap-sandbox.apache.org:636"
 LDAP_MASTER = "ldaps://ldap-us.apache.org:636"
@@ -179,9 +180,9 @@ class committer:
             raise ConnectionException("An account with this uid already exists")
 
         # Test for clashing cn's
-        res = self.manager.lc.search_s(LDAP_SUFFIX, ldap.SCOPE_SUBTREE, 'cn=%s' % xuid)
+        res = self.manager.lc.search_s(LDAP_SUFFIX, ldap.SCOPE_SUBTREE, f'cn={xuid}')
         if res:
-            raise ValidatorException("availid clashes with project name %s!" % res[0][0], 'uid')
+            raise ValidatorException(f"availid clashes with project name {res[0][0]}!", 'uid')
 
         # Switch email and home dir
         changeset = []
@@ -199,9 +200,9 @@ class committer:
         odn = self.dn_enc.decode('ascii')
         newdn = LDAP_DN % xuid
         newdn_enc = newdn.encode('ascii')
-        print("Changing %s to %s" % (odn, newdn))
-        self.manager.lc.modrdn_s(odn, 'uid=%s' % xuid)
-        
+        print(f"Changing {odn} to {newdn}")
+        self.manager.lc.modrdn_s(odn, f'uid={xuid}')
+
         # Search and rename in LDAP groups
         self.manager.redirect_uid(self.uid, newuid)
 
@@ -227,10 +228,10 @@ class manager:
         # Attempt to bind with user and pass provided
         try:
             lc.simple_bind_s(LDAP_DN % user, password)
-        except ldap.INVALID_CREDENTIALS:
-            raise ConnectionException("Invalid username or password supplied!")
-        except ldap.TIMEOUT:
-            raise ConnectionException(BACKEND_TIMEOUT)
+        except ldap.INVALID_CREDENTIALS as e:
+            raise ConnectionException("Invalid username or password supplied!") from e
+        except ldap.TIMEOUT as e:
+            raise ConnectionException(BACKEND_TIMEOUT) from e
 
         # So far so good, set uid
         self.uid = user
@@ -245,11 +246,11 @@ class manager:
             fn = res[0][1].get('cn')
             assert(type(fn) is list and len(fn) == 1)
             self.fullname = str(fn[0], 'utf-8')
-            self.email = '%s@apache.org' % user
-        except ldap.TIMEOUT:
-            raise ConnectionException(BACKEND_TIMEOUT)
-        except AssertionError:
-            raise ConnectionException(ASSERTION_FAILED)
+            self.email = f'{user}@apache.org'
+        except ldap.TIMEOUT as e:
+            raise ConnectionException(BACKEND_TIMEOUT) from e
+        except AssertionError as e:
+            raise ConnectionException(ASSERTION_FAILED) from e
 
         # Get apldap status
         try:
@@ -259,22 +260,22 @@ class manager:
             members = res[0][1].get('member')
             assert(type(members) is list and len(members) > 0)
             self.isAdmin = bytes(LDAP_DN % user, 'utf-8') in members
-        except ldap.TIMEOUT:
-            raise ConnectionException(BACKEND_TIMEOUT)
-        except AssertionError:
-            raise ConnectionException(ASSERTION_FAILED)
+        except ldap.TIMEOUT as e:
+            raise ConnectionException(BACKEND_TIMEOUT) from e
+        except AssertionError as e:
+            raise ConnectionException(ASSERTION_FAILED) from e
 
     def load_account(self, uid):
         if type(uid) is bytes:
             uid = uid.decode('ascii')
         # Check if account exists!
-        res = self.lc.search_s(LDAP_PEOPLE_BASE, ldap.SCOPE_SUBTREE, 'uid=%s' % uid)
+        res = self.lc.search_s(LDAP_PEOPLE_BASE, ldap.SCOPE_SUBTREE, f'uid={uid}')
         if res:
             return committer(self, res)
         return None
 
-    def _find_gaps(self, l):
-        return [item for item in range(l[0], l[-1]+1) if item not in l]
+    def _find_gaps(self, numbers):
+        return [item for item in range(numbers[0], numbers[-1]+1) if item not in numbers]
 
     def next_user_uid(self):
         """ Find lowest available user account uid with a matching available gid """
@@ -296,7 +297,8 @@ class manager:
             avail_uids.append(n_uid)
 
             # Ensure you got something
-            assert(type(avail_uids) is list and len(avail_uids) > 0 and type(avail_gids) is list and len(avail_gids) > 0)
+            assert(type(avail_uids) is list and len(avail_uids) > 0)
+            assert(type(avail_gids) is list and len(avail_gids) > 0)
 
             for uid in avail_uids:
                 if uid >= MINIMUM_USER_UID and uid in avail_gids:
@@ -305,10 +307,10 @@ class manager:
 
             raise ConnectionException('Unable to find a UID') # Should not happen, but ...
 
-        except ldap.TIMEOUT:
-            raise ConnectionException(BACKEND_TIMEOUT)
-        except AssertionError:
-            raise ConnectionException(ASSERTION_FAILED)
+        except ldap.TIMEOUT as e:
+            raise ConnectionException(BACKEND_TIMEOUT) from e
+        except AssertionError as e:
+            raise ConnectionException(ASSERTION_FAILED) from e
 
     def create_account(
         self,
@@ -331,9 +333,9 @@ class manager:
             raise ConnectionException("An account with this uid already exists")
 
         # Test for clashing cn's
-        res = self.lc.search_s(LDAP_SUFFIX, ldap.SCOPE_SUBTREE, 'cn=%s' % uid)
+        res = self.lc.search_s(LDAP_SUFFIX, ldap.SCOPE_SUBTREE, f'cn={uid}')
         if res:
-            raise ValidatorException("availid clashes with project name %s!" % res[0][0], 'uid')
+            raise ValidatorException(f"availid clashes with project name {res[0][0]}!", 'uid')
 
         uidnumber = self.next_user_uid()
 
@@ -368,7 +370,8 @@ class manager:
         password_crypted = passlib.hash.md5_crypt.using(salt=salt).hash(password)
 
         ldiff = {
-            'objectClass': ['person', 'top', 'posixAccount', 'organizationalPerson', 'inetOrgPerson', 'asf-committer', 'hostObject', 'ldapPublicKey'],
+            'objectClass': ['person', 'top', 'posixAccount', 'organizationalPerson', 'inetOrgPerson',
+                            'asf-committer', 'hostObject', 'ldapPublicKey'],
             'loginShell': '/bin/bash',
             'asf-sascore': '10',
             'givenName': givenName,
@@ -376,9 +379,9 @@ class manager:
             'mail': email,
             'gidNumber': '9000',
             'uidNumber': str(uidnumber),
-            'asf-committer-email': '%s@apache.org' % uid,
+            'asf-committer-email': f'{uid}@apache.org',
             'cn': fullname,
-            'homeDirectory': '/home/%s' % uid,
+            'homeDirectory': f'/home/{uid}',
             'userPassword': '{CRYPT}' + password_crypted,
             'host': 'home.apache.org',
         }
@@ -410,7 +413,7 @@ class manager:
             raise ValidatorException(f"Invalid UID '{from_uid}', must match ^[-._a-z0-9]+$")
         if not LDAP_VALID_UID_RE.match(to_uid):
             raise ValidatorException(f"Invalid UID '{to_uid}', must match ^[a-z0-9][a-z0-9_]+$")
-        
+
         # Set up string and bytestring versions of each element in long and short form
         from_dn = LDAP_DN % from_uid
         from_dn_enc = from_dn.encode('ascii')
@@ -418,26 +421,26 @@ class manager:
         to_dn_enc = to_dn.encode('ascii')
         from_uid_enc = from_uid.encode('ascii')
         to_uid_enc = to_uid.encode('ascii')
-        
+
         # Replace long refs: member + owner
         for role in ['member', 'owner']:
-            res = self.lc.search_s(LDAP_SUFFIX, ldap.SCOPE_SUBTREE, '%s=%s' % (role, from_dn))
+            res = self.lc.search_s(LDAP_SUFFIX, ldap.SCOPE_SUBTREE, f'{role}={from_dn}')
             for entry in res:
                 cn = entry[0]
                 myhash = entry[1]
                 if from_dn_enc in myhash[role]:
-                    print("Modifying (long) %s attribute in %s ..." % (role, cn))
+                    print(f"Modifying (long) {role} attribute in {cn} ...")
                     self.lc.modify_s(cn, [(ldap.MOD_DELETE, role, from_dn_enc)])
                     self.lc.modify_s(cn, [(ldap.MOD_ADD, role, to_dn_enc)])
 
         # Replace short refs: memberUid
         for role in ['memberUid']:
-            res = self.lc.search_s(LDAP_SUFFIX, ldap.SCOPE_SUBTREE, '(&(objectClass=posixGroup)(%s=%s))' % (role, from_uid))
+            res = self.lc.search_s(LDAP_SUFFIX, ldap.SCOPE_SUBTREE, f'(&(objectClass=posixGroup)({role}={from_uid}))')
             for entry in res:
                 cn = entry[0]
                 myhash = entry[1]
                 if from_uid_enc in myhash[role]:
-                    print("Modifying (short) %s attribute in %s ..." % (role, cn))
+                    print(f"Modifying (short) {role} attribute in {cn} ...")
                     self.lc.modify_s(cn, [(ldap.MOD_DELETE, role, from_uid_enc)])
                     self.lc.modify_s(cn, [(ldap.MOD_ADD, role, to_uid_enc)])
 
