@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # justone.py -- utilities to ensure one process runs at a time
 #
@@ -37,10 +36,10 @@
 #
 
 
-import os
-import errno
-import time
 import contextlib
+import errno
+import os
+import time
 
 STALE = 3600  # seconds
 

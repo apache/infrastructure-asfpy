@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.
@@ -33,8 +32,8 @@ It also contains hipchat and stride integrations
 if not __debug__:
     raise RuntimeError("This code requires Assertions to be enabled")
 
-import email.utils
 import email.header
+import email.utils
 import re
 import smtplib
 import warnings
@@ -60,7 +59,7 @@ def _check_field_name(name):
     header, or start another one, of the caller's caller's choosing.
     """
     if not isinstance(name, str) or not _FIELD_NAME_RE.fullmatch(name):
-        raise ValueError('Not a valid name for an email header: %r' % (name,))
+        raise ValueError(f'Not a valid name for an email header: {name!r}')
 
 
 def _check_field_value(what, value):
@@ -71,7 +70,7 @@ def _check_field_value(what, value):
     WHAT says which argument the value came from, for the error message.
     """
     if '\r' in value or '\n' in value or '\x00' in value:
-        raise ValueError('%s may not contain a line break: %r' % (what, value))
+        raise ValueError(f'{what} may not contain a line break: {value!r}')
 
 
 def uniaddr(addr):
@@ -82,7 +81,7 @@ def uniaddr(addr):
 
 def thread_msgid(key):
     "Return a reproducible Message-ID value."
-    return'<asfpy-%s@apache.org>' % (key,)
+    return f'<asfpy-{key}@apache.org>'
 
 
 def mail(
@@ -110,12 +109,12 @@ def mail(
     if headers is None:
         headers = { }
     elif not isinstance(headers, dict):
-        raise TypeError("Argument headers must be a dict") 
+        raise TypeError("Argument headers must be a dict")
 
     # Deprecating these parameters. Use THREAD_* instead.
     if messageid or headers:
         warnings.warn('Use THREAD_* instead of MESSAGEID and/or HEADERS.',
-                      DeprecationWarning)
+                      DeprecationWarning, stacklevel=2)
 
     # We have expectations. Enforce them.
     assert message, 'Message body is required.'
@@ -138,7 +137,7 @@ def mail(
         _check_field_value('thread_key', str(thread_key))
     for key, val in headers.items():
         _check_field_name(key)
-        _check_field_value('Header %s' % (key,), str(val))
+        _check_field_value(f'Header {key}', str(val))
 
     # Handle threading of email messages.
     if thread_start:
@@ -184,27 +183,27 @@ def mail(
     sender_encoded = uniaddr(sender)
     recipient_encoded = ", ".join([uniaddr(x) for x in recipients])
 
-    extra = u""
+    extra = ""
     if headers:
         for key, val in headers.items():
             try:
                 str(val).encode("us-ascii")
             except UnicodeEncodeError:  # String has non-ascii elements, convert
                 val = email.header.Header(val, 'utf-8').encode()
-            extra += u"%s: %s\n" % (key, val)
-    extra += u"\n"
+            extra += f"{key}: {val}\n"
+    extra += "\n"
 
     # Construct the email
-    msg = u"""From: %s
-To: %s	
-Subject: %s
-Message-ID: %s
-Date: %s
+    msg = f"""From: {sender_encoded}
+To: {recipient_encoded}
+Subject: {subject_encoded}
+Message-ID: {messageid}
+Date: {date}
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 8bit
-%s
-%s
-""" % (sender_encoded, recipient_encoded, subject_encoded, messageid, date, extra, message)
+{extra}
+{message}
+"""
     msg = msg.encode('utf-8', errors='replace')
     # Try to dispatch message, do a raw fail if stuff happens.
     if ":" in host:  # Port specified in hostname

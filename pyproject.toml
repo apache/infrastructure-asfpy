@@ -30,7 +30,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [dependency-groups]
-dev = ["mypy", "pylint", "pytest"]
+dev = ["mypy", "pylint", "pytest", "ruff>=0.17"]
 
 [tool.hatch.build.targets.sdist]
 exclude = ["test/"]
@@ -38,3 +38,52 @@ exclude = ["test/"]
 [tool.pytest.ini_options]
 testpaths  = ["test"]
 pythonpath = ["asfpy"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+  "I",     # isort
+  "E",
+  "W",
+  "F",
+  "ASYNC", # flake8-async: what does not belong in a coroutine
+  "B",     # flake8-bugbear: the mistakes that still run
+  "G",     # flake8-logging-format: a log message is a format string, its values are arguments
+  "LOG",   # flake8-logging: how a logger is obtained and called
+  "N",     # pep8-naming
+  "RUF",   # ruff-checks
+  "S",     # flake8-bandit: the security-shaped mistakes
+  "TID",   # flake8-tidy-imports
+  "TC",    # flake8-type-checking
+  "UP",    # pyupgrade
+]
+ignore = [
+  # assert is how this library checks its arguments, on purpose: messaging refuses
+  # to be imported with assertions turned off. Tests assert by nature.
+  "S101",
+  # Every subprocess call here takes an argument list, never a string through a
+  # shell, which is the distinction S603 cannot see.
+  "S603",
+  # An f-string in a log call is fine. Formatting it costs microseconds; the
+  # syscall that writes the line costs milliseconds.
+  "G004",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Re-exports; `daemon` is the name of the module as well as of the class.
+"asfpy/__init__.py" = ["F401", "N813"]
+# Public names that callers already use: ASF_LDAPClient, ASF_LDAPConnection, SCOPE.
+# The randomness is in test_conns(), a manual harness run from the command line.
+"asfpy/aioldap.py" = ["N801", "N806", "N814", "S311"]
+# Public names that callers already use: committer, manager, forcePass, requireTwo,
+# and the exception classes with their Exception suffix. The imports follow the
+# checks that assertions are on and the Python is new enough (E402).
+"asfpy/ldapadmin.py" = ["E402", "N801", "N803", "N806", "N818"]
+# The statements are built from table and column names that the caller gives,
+# which is issue #46. Remove this when that is fixed.
+"asfpy/sqlite.py" = ["S608"]
+# The test server's fixture password, and the password a test passes to a client.
+"test/**" = ["S105", "S106"]

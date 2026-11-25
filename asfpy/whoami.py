@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.
@@ -16,6 +15,7 @@
 # limitations under the License.
 
 import socket
+
 
 def whoami():
     """Returns the FQDN of the box the program runs on"""
@@ -36,7 +36,7 @@ def whoami():
                     return name
             # No match, just return the first occurrence.
             return canonical_names[0]
-    except socket.error:
+    except OSError:
         pass
     # Fall back to socket.getfqdn
     return socket.getfqdn()

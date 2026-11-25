@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.
@@ -16,17 +15,15 @@
 # limitations under the License.
 """Auxiliary crypto features. Just ED25519 signing for now."""
 
-import hmac
-import hashlib
 import base64
 import binascii
+import hashlib
+import hmac
 import secrets
 
 import cryptography.exceptions
 import cryptography.hazmat.primitives.asymmetric.ed25519
 import cryptography.hazmat.primitives.serialization
-
-from typing import Optional
 
 # Defaults PEM format for our ED25519 keys
 ED25519_ENCODING = cryptography.hazmat.primitives.serialization.Encoding.PEM
@@ -36,7 +33,7 @@ ED25519_PEM_ENCRYPTION = cryptography.hazmat.primitives.serialization.NoEncrypti
 
 
 class ED25519:
-    def __init__(self, pubkey: Optional[str] = None, privkey: Optional[str] = None):
+    def __init__(self, pubkey: str | None = None, privkey: str | None = None):
         """Loads an existing ED25519 key or instantiates a new ED25519 key pair.
         If pubkey is set, it loads it as a PEM-formatted key, same with privkey.
         If no public or private key is passed on, a new keypair is created instead."""

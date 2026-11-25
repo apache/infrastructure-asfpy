@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.
@@ -27,7 +26,7 @@ import pytest
 
 bonsai = pytest.importorskip('bonsai', reason='needs the aioldap extra')
 
-import asfpy.aioldap  # pylint: disable=wrong-import-position
+import asfpy.aioldap  # noqa: E402  pylint: disable=wrong-import-position
 
 
 def client_for(server, password=None, **kwargs):

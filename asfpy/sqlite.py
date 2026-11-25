@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.
@@ -32,7 +31,7 @@ class AsfpyDBError(Exception):
 
 class DB:
     def __init__(self, fp: str,
-            isolation_level: typing.Optional[typing.Literal['DEFERRED', 'EXCLUSIVE', 'IMMEDIATE']] = DEFAULT_ISOLATION_LEVEL):
+            isolation_level: typing.Literal['DEFERRED', 'EXCLUSIVE', 'IMMEDIATE'] | None = DEFAULT_ISOLATION_LEVEL):
         self.connector = sqlite3.connect(fp, isolation_level=isolation_level)
         self.connector.row_factory = sqlite3.Row
         self.cursor = self.connector.cursor()
@@ -65,7 +64,7 @@ class DB:
         if not target:
             raise AsfpyDBError("DELETE must have at least one defined target value for locating where to delete from")
         items = target.items()  # Use the same ordering for keys/values
-        search = " AND ".join("`%s` = ?" % uk for uk, uv in items)
+        search = " AND ".join(f"`{uk}` = ?" for uk, uv in items)
         values = [uv for uk, uv in items]
         statement = f'DELETE FROM {table} WHERE {search}'
         self.runc(statement, *values)
@@ -84,7 +83,7 @@ class DB:
             raise AsfpyDBError("UPDATE must have at one defined target to specify the row to update")
         k, v = next(iter(target.items()))
         items = document.items()  # Use the same ordering for keys/values
-        columns = ", ".join("%s = ?" % uk for uk, uv in items)
+        columns = ", ".join(f"{uk} = ?" for uk, uv in items)
         statement = f'UPDATE {table} SET {columns} WHERE {k} = ?;'
         values = [uv for uk, uv in items]
         values.append(v)  # unique constraint
@@ -97,7 +96,7 @@ class DB:
         @param document: The row data, as a dict, to insert.
         """
         items = document.items()  # Use the same ordering for keys/values
-        columns = ", ".join("`%s`" % uk for uk, uv in items)
+        columns = ", ".join(f"`{uk}`" for uk, uv in items)
         questionmarks = ", ".join(['?'] * len(items))
         statement = f'INSERT INTO {table} ({columns}) VALUES ({questionmarks});'
         values = [uv for uk, uv in items]
@@ -122,11 +121,12 @@ class DB:
         # INSERT INTO foo (bar,baz) VALUES (?,?) ON CONFLICT (bar) DO UPDATE SET (bar=?, foo=?) WHERE bar=?,(1,2,1,2,1,)
         if self.upserts_supported:
             items = document.items()  # Use the same ordering for keys/values
-            variables = ", ".join("`%s`" % uk for uk, uv in items)
+            variables = ", ".join(f"`{uk}`" for uk, uv in items)
             questionmarks = ", ".join(['?'] * len(items))
-            upserts = ", ".join("`%s` = ?" % uk for uk, uv in items)
+            upserts = ", ".join(f"`{uk}` = ?" for uk, uv in items)
 
-            statement = f'INSERT INTO {table} ({variables}) VALUES ({questionmarks}) ON CONFLICT({k}) DO UPDATE SET {upserts} WHERE {k} = ?;'
+            statement = (f'INSERT INTO {table} ({variables}) VALUES ({questionmarks}) '
+                         f'ON CONFLICT({k}) DO UPDATE SET {upserts} WHERE {k} = ?;')
             # insert values, update values, and the unique constraint value
             values = ([uv for uk, uv in items] * 2) + [v]
             self.runc(statement, *values)
@@ -148,7 +148,7 @@ class DB:
         """
         if params:
             items = params.items()  # Use the same ordering for keys/values
-            search = " AND ".join("`%s` = ?" % uk for uk, uv in items)
+            search = " AND ".join(f"`{uk}` = ?" for uk, uv in items)
             values = [uv for uk, uv in items]
         else:
             search = "1"
@@ -170,7 +170,7 @@ class DB:
                 if rows_left == 0:
                     return  # break iteration
 
-    def fetchone(self, table_name: str, **params) -> typing.Optional[dict]:
+    def fetchone(self, table_name: str, **params) -> dict | None:
         """
         Fetches a single row from a table, or None if no match was found.
         @param table_name: The table to search in
@@ -188,7 +188,7 @@ class DB:
         @param table: The table to look for
         @return: Boolean True or False, depending on whether the table exists.
         """
-        return self.fetchone('sqlite_master', type='table', name=table) and True or False
+        return (self.fetchone('sqlite_master', type='table', name=table) and True) or False
 
 
 def test(dbname=':memory:'):

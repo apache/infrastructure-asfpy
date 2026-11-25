@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.
@@ -25,18 +24,19 @@ Usage example:
     myprog.start()
 """
 
-import os
-import sys
 import atexit
+import os
 import signal
+import sys
 import time
+
 
 class Daemon:
     def __init__(self, main, pidfile = None, quiet = True):
         self.main = main
         if not pidfile:
             pidfile = sys.argv[0] if len(sys.argv) > 0 else 'generic_py'
-            pidfile = "/var/run/%s.pid" % pidfile
+            pidfile = f"/var/run/{pidfile}.pid"
         self.pidfile = pidfile
         self.quiet = quiet
 
@@ -47,7 +47,7 @@ class Daemon:
                 # exit first parent
                 sys.exit(0)
         except OSError as err:
-            sys.stderr.write('fork #1 failed: {0}\n'.format(err))
+            sys.stderr.write(f'fork #1 failed: {err}\n')
             sys.exit(1)
 
         # decouple from parent environment
@@ -63,14 +63,14 @@ class Daemon:
                 # exit from second parent
                 sys.exit(0)
         except OSError as err:
-            sys.stderr.write('fork #2 failed: {0}\n'.format(err))
+            sys.stderr.write(f'fork #2 failed: {err}\n')
             sys.exit(1)
 
         # redirect standard file descriptors if need be
         if self.quiet:
             sys.stdout.flush()
             sys.stderr.flush()
-            si = open(os.devnull, 'r')
+            si = open(os.devnull)
             so = open(os.devnull, 'a+')
             se = open(os.devnull, 'a+')
 
@@ -93,10 +93,10 @@ class Daemon:
 
         # Check for a pidfile to see if the daemon already runs
         try:
-            with open(self.pidfile,'r') as pf:
+            with open(self.pidfile) as pf:
 
                 pid = int(pf.read().strip())
-        except IOError:
+        except OSError:
             pid = None
 
         if pid:
@@ -114,9 +114,9 @@ class Daemon:
 
         # Get the pid from the pidfile
         try:
-            with open(self.pidfile,'r') as pf:
+            with open(self.pidfile) as pf:
                 pid = int(pf.read().strip())
-        except IOError:
+        except OSError:
             pid = None
 
         if not pid:
